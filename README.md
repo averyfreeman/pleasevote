@@ -4,15 +4,15 @@
 
 ## Screenshots:
 
-![Home Page](https://github.com/averyfreeman/next-google-api/tree/master/screenshots/PLEASE-VOTE-1.png)
+![Home Page](https://github.com/averyfreeman/next-google-api/blob/master/screenshots/PLEASE-VOTE-1.png?raw=true)
 
-![Voter Info](https://github.com/averyfreeman/next-google-api/tree/master/screenshots/PLEASE-VOTE-2.png)
+![Voter Info](https://github.com/averyfreeman/next-google-api/tree/master/screenshots/PLEASE-VOTE-2.png?raw=true)
 
-![A returned object from Florida](https://github.com/averyfreeman/next-google-api/tree/master/screenshots/voterInfo-object-florida.png)
+![A returned object from Florida](https://github.com/averyfreeman/next-google-api/tree/master/screenshots/voterInfo-object-florida.png?raw=true)
 
-![A returned object from Washington State](https://github.com/averyfreeman/next-google-api/tree/master/screenshots/voterInfo-object-washington.png)
+![A returned object from Washington State](https://github.com/averyfreeman/next-google-api/tree/master/screenshots/voterInfo-object-washington.png?raw=true)
 
-The project is designed to deliver information to voters about upcoming elections provided by the [Google Civic API](https://developers.google.com/civic-information).
+The project is designed to deliver information to voters about upcoming elections provided by the [Google Civic API](https://developers.google.com/civic-information?raw=true).
 
 Information provided includes:
 
