@@ -2,6 +2,16 @@
 
 ### A project with certain urgency
 
+## Screenshots:
+
+![Home Page](https://github.com/averyfreeman/next-google-api/tree/master/screenshots/PLEASE-VOTE-1.png)
+
+![Voter Info](https://github.com/averyfreeman/next-google-api/tree/master/screenshots/PLEASE-VOTE-2.png)
+
+![A returned object from Florida](https://github.com/averyfreeman/next-google-api/tree/master/screenshots/voterInfo-object-florida.png)
+
+![A returned object from Washington State](https://github.com/averyfreeman/next-google-api/tree/master/screenshots/voterInfo-object-washington.png)
+
 The project is designed to deliver information to voters about upcoming elections provided by the [Google Civic API](https://developers.google.com/civic-information).
 
 Information provided includes:
@@ -27,6 +37,8 @@ Planned soon:
 
 - Google map to show coordinates of provided address (and possibly choose address)
 - US District maps created by geocode coordinates
+
+- Modifications to be more friendly to SSR
 
 Possible changes:
 
