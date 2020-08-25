@@ -1,0 +1,7 @@
+@media (max-width: 40rem) {
+  .modal-dialog {
+    margin: 0;
+    max-width: none;
+    width: 100%;
+  }
+}

@@ -1,0 +1,17 @@
+@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Gudea&family=Righteous&family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&family=VT323&display=swap');
+
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.14.0/css/all.min.css');
+
+@font-face {
+  font-family: 'Digital Clock';
+  src: url('LEDSimulator.ttf');
+}
+
+body {
+  font-family: 'Gueda', sans-serif;
+  overflow-x: hidden;
+}
+
+table {
+  font-family: 'Gueda', serif;
+}
