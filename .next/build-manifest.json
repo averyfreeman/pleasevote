@@ -1,45 +1,38 @@
 {
   "polyfillFiles": [
-    "static/chunks/polyfills-c30a0338d988282f18a0.js"
+    "static/chunks/polyfills.js"
   ],
-  "devFiles": [],
-  "ampDevFiles": [],
+  "devFiles": [
+    "static/chunks/react-refresh.js"
+  ],
+  "ampDevFiles": [
+    "static/chunks/webpack.js",
+    "static/chunks/amp.js"
+  ],
   "lowPriorityFiles": [
-    "static/azYagXPFTQYWGYJ2oKsGD/_buildManifest.js",
-    "static/azYagXPFTQYWGYJ2oKsGD/_ssgManifest.js"
+    "static/development/_buildManifest.js",
+    "static/development/_ssgManifest.js"
   ],
   "pages": {
     "/": [
-      "static/chunks/main-a9e2d2dd1cd3930fc5f1.js",
-      "static/chunks/webpack-ccf5ab034a524403276a.js",
-      "static/chunks/framework.1c56855a03e0ae316b73.js",
-      "static/chunks/75fc9c18.34f1da525fc96d3281d7.js",
-      "static/chunks/commons.0d04af4153c4c0aa2f54.js",
-      "static/chunks/53fd45b833ed3e3ed1330bd96df16be97350da99.fb3189f88ae8805d9f4f.js",
-      "static/chunks/pages/index-72a92c4ed02b088a13b4.js"
+      "static/chunks/main.js",
+      "static/chunks/webpack.js",
+      "static/chunks/pages/index.js"
     ],
     "/_app": [
-      "static/chunks/main-a9e2d2dd1cd3930fc5f1.js",
-      "static/chunks/webpack-ccf5ab034a524403276a.js",
-      "static/chunks/framework.1c56855a03e0ae316b73.js",
-      "static/chunks/commons.0d04af4153c4c0aa2f54.js",
-      "static/css/d5e03942ced9aad3c126.css",
-      "static/chunks/pages/_app-0b8ef0eab9c51e392626.js"
+      "static/chunks/main.js",
+      "static/chunks/webpack.js",
+      "static/chunks/pages/_app.js"
     ],
     "/_error": [
-      "static/chunks/main-a9e2d2dd1cd3930fc5f1.js",
-      "static/chunks/webpack-ccf5ab034a524403276a.js",
-      "static/chunks/framework.1c56855a03e0ae316b73.js",
-      "static/chunks/commons.0d04af4153c4c0aa2f54.js",
-      "static/chunks/pages/_error-e5599dfcb50069ad77d8.js"
+      "static/chunks/main.js",
+      "static/chunks/webpack.js",
+      "static/chunks/pages/_error.js"
     ],
     "/voterinfo": [
-      "static/chunks/main-a9e2d2dd1cd3930fc5f1.js",
-      "static/chunks/webpack-ccf5ab034a524403276a.js",
-      "static/chunks/framework.1c56855a03e0ae316b73.js",
-      "static/chunks/commons.0d04af4153c4c0aa2f54.js",
-      "static/chunks/53fd45b833ed3e3ed1330bd96df16be97350da99.fb3189f88ae8805d9f4f.js",
-      "static/chunks/pages/voterinfo-f9219f382d3bc28a616e.js"
+      "static/chunks/main.js",
+      "static/chunks/webpack.js",
+      "static/chunks/pages/voterinfo.js"
     ]
   },
   "ampFirstPages": []
