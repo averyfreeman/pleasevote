@@ -1,1 +1,0 @@
-{"ast":null,"code":"import React from \"react\";\nvar __jsx = React.createElement;\nimport dynamic from 'next/dynamic';\nimport { Fragment } from 'react';\n\nconst NoSsr = ({\n  children\n}) => __jsx(Fragment, null, children);\n\nexport default dynamic(() => Promise.resolve(NoSsr), {\n  ssr: false\n});","map":null,"metadata":{},"sourceType":"module"}
