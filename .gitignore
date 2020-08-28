@@ -7,11 +7,11 @@
 
 # testing
 /coverage
-.vscode
+/.vscode
 
 # production
 /build
-.next
+/.next
 
 # misc
 .DS_Store
@@ -22,7 +22,7 @@
 keyFile.js
 mapsKey.js
 test-criteria.js
-*.txt
+openstates-org-api-key.txt
 
 npm-debug.log*
 yarn-debug.log*
