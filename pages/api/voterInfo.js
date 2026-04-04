@@ -2,7 +2,7 @@ import { google } from 'googleapis';
 
 const civic = google.civicinfo({
   version: 'v2',
-  auth: process.env.GAPI_KEY,
+  auth: process.env.GOOGLE_CIVIC_API_KEY,
 });
 
 export default async ({ query: { id }, query: { address } }, res, error) => {
