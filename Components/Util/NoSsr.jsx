@@ -1,8 +1,17 @@
-import dynamic from 'next/dynamic';
-import { Fragment } from 'react';
+import { useEffect, useState } from 'react';
 
-const NoSsr = ({ children }) => <Fragment>{children}</Fragment>;
+const NoSsr = ({ children }) => {
+  const [mounted, setMounted] = useState(false);
 
-export default dynamic(() => Promise.resolve(NoSsr), {
-  ssr: false,
-});
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return null;
+  }
+
+  return children;
+};
+
+export default NoSsr;
