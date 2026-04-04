@@ -1,42 +1,27 @@
 import { useState } from 'react';
-import { Card } from 'react-bootstrap';
 import Form from 'Components/Input/Form';
+import { MapPin, DoorOpen } from 'lucide-react';
 
 const AddressDialog = (props) => {
-  const [isOpen, setIsOpen] = useState(true);
-
-  const handleIsOpen = () => setIsOpen(!isOpen);
-
   return (
-    <div>
-      <Card className='mb-3 shadow'>
-        {/* <Accordion.Toggle
-          as={Card.Header}
-          eventKey='0'
-          style={{ cursor: 'pointer' }}
-          >
-          <h3 className='card-header bg-primary text-white'>
-            <span className='text-left'>Address Form</span>
-            <span className='float-right'>
-              {isOpen && <i className='fas fa-times-circle'></i>}
-              {!isOpen && <i className='fas fa-plus-circle'></i>}
-            </span>
-          </h3>
-        </Accordion.Toggle> */}
-        <Card.Body>
-          <h3 className='text-center mt-3'>
-            <i className='fas fa-map-marked-alt'></i> Required to retrieve
-            information <i className='fas fa-door-open'></i>
-          </h3>
+    <div className="w-full">
+      <div className="flex flex-col items-center justify-center mb-8 space-y-4 text-center">
+        <div className="flex items-center space-x-3 text-2xl font-bold text-onehalf-light font-righteous">
+          <MapPin className="text-onehalf-red animate-bounce" size={32} />
+          <span>Location Required</span>
+          <DoorOpen className="text-onehalf-green" size={32} />
+        </div>
+        <p className="text-onehalf-gray max-w-md">
+          To provide accurate election data, please enter your full residential address below.
+        </p>
+      </div>
 
-          <Form
-            variable='address'
-            label='Address'
-            showConfirmation={true}
-            close={props.close}
-          />
-        </Card.Body>
-      </Card>
+      <Form
+        variable='address'
+        label='Address'
+        showConfirmation={true}
+        close={props.close}
+      />
     </div>
   );
 };

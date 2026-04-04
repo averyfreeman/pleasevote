@@ -1,74 +1,44 @@
 import { useState, useEffect } from 'react';
-import { ticker, timeRemaining } from 'lib/timerLogic';
-import { Accordion, Button, Card } from 'react-bootstrap';
-import { ClockFace, OuterShadow } from 'styles/styledComponents';
+import { timeRemaining } from 'lib/timerLogic';
+import { ChevronDown, ChevronUp, Clock } from 'lucide-react';
 
 const CountdownTimer = ({ endTime, label }) => {
   const [timeLeft, setTimeLeft] = useState(timeRemaining(endTime));
   const [isOpen, setIsOpen] = useState(true);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
+    const timer = setInterval(() => {
       setTimeLeft(timeRemaining(endTime));
     }, 1000);
-  });
+    return () => clearInterval(timer);
+  }, [endTime]);
 
-  const handleStartClock = () => {
-    setTimeLeft(ticker);
-  };
-
-  const handleStopClock = () => {
-    setTimeLeft(ticker);
-  };
-
-  const handleIsOpen = () => setIsOpen(!isOpen);
+  const toggleOpen = () => setIsOpen(!isOpen);
 
   return (
-    <Accordion defaultActiveKey='0' onClick={handleIsOpen}>
-      <Card className='mb-3 shadow'>
-        <Accordion.Toggle
-          as={Card.Header}
-          color='Primary'
-          eventKey='0'
-          style={{ cursor: 'pointer' }}
-        >
-          <h3 className='card-header bg-primary text-white'>
-            <span className='text-left'>Countdown Timer &nbsp;</span>
-            <span className='float-right'>
-              {isOpen && <i className='fas fa-times-circle'></i>}
-              {!isOpen && <i className='fas fa-plus-circle'></i>}
+    <div className="mb-4 overflow-hidden border rounded-lg shadow-lg border-onehalf-gray bg-onehalf-dark">
+      <button
+        onClick={toggleOpen}
+        className="flex items-center justify-between w-full px-6 py-4 text-left transition-colors bg-onehalf-blue text-onehalf-dark hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-onehalf-blue focus:ring-inset"
+        aria-expanded={isOpen}
+      >
+        <span className="text-xl font-bold font-righteous">Countdown Timer</span>
+        {isOpen ? <ChevronUp size={24} /> : <ChevronDown size={24} />}
+      </button>
+
+      {isOpen && (
+        <div className="p-6 text-center bg-onehalf-dark">
+          <h2 className="mb-4 text-2xl font-semibold text-onehalf-light">{label}</h2>
+          <div className="inline-flex items-center justify-center px-8 py-4 mt-2 font-mono text-4xl border-4 rounded-lg bg-black/50 text-onehalf-red border-onehalf-gray shadow-[inset_0_2px_10px_rgba(0,0,0,0.8)]">
+            <Clock className="mr-4" size={32} />
+            <span className="tracking-widest">
+              {timeLeft.remaining.days}d {timeLeft.remaining.hours}h {timeLeft.remaining.minutes}m {timeLeft.remaining.seconds}s
             </span>
-          </h3>
-        </Accordion.Toggle>
-        <Accordion.Collapse eventKey='0'>
-          <Card.Body className='text-center'>
-            <h1 className='display-1 '>
-              {label}
-              <ClockFace className='text-danger card card-body mt-3'>
-                {timeLeft.remaining.days}d {timeLeft.remaining.hours}h{' '}
-                {timeLeft.remaining.minutes}m {timeLeft.remaining.seconds}s
-              </ClockFace>
-            </h1>
-          </Card.Body>
-        </Accordion.Collapse>
-      </Card>
-    </Accordion>
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 
 export default CountdownTimer;
-
-{
-  /* <button
-  className='btn btn-outline-primary m-3'
-  onClick={handleStartClock}
->
-Start clock
-</button>
-<button
-className='btn btn-outline-dark m-3'
-onClick={handleStopClock}
->
-Stop clock
-</button> */
-}

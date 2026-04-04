@@ -1,148 +1,143 @@
-import { Fragment, useState } from 'react';
-import Link from 'next/link';
+import { Fragment, useState, useEffect } from 'react';
 import useSWR from 'swr';
-import { Accordion, Button, Card } from 'react-bootstrap';
+import {
+  ChevronDown,
+  ChevronUp,
+  MapPin,
+  Clock,
+  Info,
+  AlertCircle,
+  ExternalLink,
+  Loader2,
+  CheckCircle
+} from 'lucide-react';
 
-const PollingLocations = (props) => {
+const PollingLocations = () => {
   const [isOpen, setIsOpen] = useState(true);
+  const [params, setParams] = useState({ address: null, id: null });
 
-  const address = JSON.parse(window.localStorage.getItem('address'));
-  const id = window.localStorage.getItem('id');
-  console.log(address, id);
-  const url = `/api/voterInfo?id=${id}&address=${address}`;
+  useEffect(() => {
+    try {
+      const address = JSON.parse(window.localStorage.getItem('address'));
+      const id = JSON.parse(window.localStorage.getItem('id'));
+      setParams({ address, id });
+    } catch (e) {
+      console.error("Error parsing stored data", e);
+      const address = window.localStorage.getItem('address');
+      const id = window.localStorage.getItem('id');
+      setParams({ address, id });
+    }
+  }, []);
+
+  const url = params.address && params.id ? `/api/voterInfo?id=${params.id}&address=${params.address}` : null;
   const fetcher = (url) => fetch(url).then((r) => r.json());
   const { data, error } = useSWR(url, fetcher);
 
+  const toggleOpen = () => setIsOpen(!isOpen);
+
+  if (!url) return null;
+
   if (error)
     return (
-      <div className='alert alert-danger' role='alert'>
-        <span className='sr-only'>Failed to load data!</span>
+      <div className="flex items-center p-6 mb-4 space-x-4 border-l-4 rounded-lg bg-onehalf-red/20 border-onehalf-red text-onehalf-red" role="alert">
+        <AlertCircle size={32} />
+        <span className="text-lg font-bold">Failed to load polling locations!</span>
       </div>
     );
 
   if (!data)
     return (
-      <div
-        className='spinner-border spinner-border-lg text-danger'
-        role='status'
-        style={{ margin: '10rem', width: '20rem', height: '20rem' }}
-      ></div>
+      <div className="flex flex-col items-center justify-center py-12 space-y-4">
+        <Loader2 className="animate-spin text-onehalf-blue" size={48} />
+        <p className="text-onehalf-gray">Loading polling locations...</p>
+      </div>
     );
-
-  const handleIsOpen = () => setIsOpen(!isOpen);
 
   if (
     (data && (data !== null) & !data.data.pollingLocations) ||
-    data.data.pollingLocations.length <= 0 ||
+    data.data.pollingLocations?.length <= 0 ||
     data.data.pollingLocations === null
   ) {
     return (
-      <Card bg='danger' className='mb-3 shadow text-white'>
-        <Card.Header>
-          <h3 className='m-3 font-weight-bold'>
-            Attention: Polling locations not found in database.
-          </h3>
-        </Card.Header>
-        <Card.Body>
-          <h5 className='m-3'>
-            Please contact your state's Secretary of State office to ask where
-            your local polling location is located
-          </h5>
-          <Link href='https://www.usa.gov/election-office'>
-            <a
-              className='m-3 font-weight-bold'
-              style={{ textTransform: 'uppercase', color: 'black' }}
-              target='_blank'
-            >
-              <div className='text-center'>
-                <i className='fas fa-info-circle fa-2x'></i> &nbsp;Click here to
-                search for your state&nbsp;{' '}
-                <i className='fas fa-question-circle fa-2x'></i>
-              </div>
-            </a>
-          </Link>
-        </Card.Body>
-      </Card>
-    );
-  }
-
-  if (data && data !== null) {
-    const { pollingLocations } = data.data;
-
-    return (
-      <Accordion defaultActiveKey='0' onClick={handleIsOpen}>
-        <Card className='mb-3 shadow'>
-          <Accordion.Toggle
-            as={Card.Header}
-            eventKey='0'
-            style={{ cursor: 'pointer' }}
+      <div className="mb-6 border rounded-xl overflow-hidden border-onehalf-red shadow-lg bg-onehalf-dark">
+        <div className="px-6 py-4 bg-onehalf-red text-white flex items-center">
+          <AlertCircle className="mr-3" size={28} />
+          <h3 className="text-xl font-bold">Attention: Polling locations not found in database</h3>
+        </div>
+        <div className="p-8 text-center space-y-6">
+          <p className="text-lg text-onehalf-light">
+            Please contact your state's Secretary of State office to ask where your local polling location is located.
+          </p>
+          <a
+            href="https://www.usa.gov/election-office"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center px-6 py-3 text-lg font-bold transition-all rounded-lg bg-onehalf-yellow text-onehalf-dark hover:scale-105"
           >
-            <h3 className='card-header bg-primary text-white'>
-              <span className='text-left'>
-                Available Polling Location(s) &nbsp;
-              </span>
-              <span className='float-right'>
-                {isOpen && <i className='fas fa-times-circle'></i>}
-                {!isOpen && <i className='fas fa-plus-circle'></i>}
-              </span>
-            </h3>
-          </Accordion.Toggle>
-          <Accordion.Collapse eventKey='0'>
-            <Card.Body>
-              {pollingLocations.length > 0 && (
-                <Card className='m-3'>
-                  {pollingLocations.map((location, idx) => (
-                    <Fragment key={idx}>
-                      <div
-                        className='card-header'
-                        style={{ fontFamily: 'Righteous, sans-serif' }}
-                      >
-                        <h3 className='card-title'>
-                          {location.address.locationName}
-                        </h3>
-                      </div>
-                      <div className='card-body text-center'>
-                        <h3 className='card-text'>Address:</h3>
-                        <div className='display-4 font-weight-bold'>
-                          <p className='card-text'>{location.address.line1}</p>
-                          <p className='card-text'>{location.address.line2}</p>
-                          <p className='card-text'>
-                            {location.address.city}, {location.address.state}{' '}
-                            {location.address.zip}
-                          </p>
-                        </div>
-                      </div>
-                      <div className='card-footer'>
-                        <h3 className='card-title text-center'>
-                          Location hours and information:
-                        </h3>
-                        <div className='font-weight-bold'>
-                          <p className='card-text'>{location.pollingHours}</p>
-                        </div>
-                        <div className='card-body'>
-                          <p className='card-title'>
-                            Source: {location.sources[0].name}
-                          </p>
-                          {location.sources[0].official && (
-                            <p className='card-text'>(Verified source) </p>
-                          )}
-                        </div>
-                      </div>
-                    </Fragment>
-                  ))}
-                </Card>
-              )}
-              {pollingLocations.length < 0 && (
-                <div className='jumbotron'>
-                  <p>No polling locations shown at this time</p>
-                </div>
-              )}
-            </Card.Body>
-          </Accordion.Collapse>
-        </Card>
-      </Accordion>
+            <Info className="mr-3" size={24} />
+            Search for your state election office
+          </a>
+        </div>
+      </div>
     );
   }
+
+  const { pollingLocations } = data.data;
+
+  return (
+    <div className="mb-6 overflow-hidden border rounded-lg shadow-lg border-onehalf-gray bg-onehalf-dark">
+      <button
+        onClick={toggleOpen}
+        className="flex items-center justify-between w-full px-6 py-4 text-left transition-colors bg-onehalf-blue text-onehalf-dark hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-onehalf-blue focus:ring-inset"
+        aria-expanded={isOpen}
+      >
+        <span className="text-xl font-bold font-righteous">Available Polling Location(s)</span>
+        {isOpen ? <ChevronUp size={24} /> : <ChevronDown size={24} />}
+      </button>
+
+      {isOpen && (
+        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+          {pollingLocations.map((location, idx) => (
+            <div key={idx} className="flex flex-col border border-onehalf-gray/30 rounded-xl overflow-hidden bg-black/20">
+              <div className="px-6 py-4 bg-onehalf-cyan/20 border-b border-onehalf-gray/30">
+                <h3 className="text-xl font-bold font-righteous text-onehalf-cyan flex items-center">
+                  <MapPin className="mr-2" size={20} />
+                  {location.address.locationName}
+                </h3>
+              </div>
+
+              <div className="p-6 flex-grow flex flex-col items-center justify-center text-center space-y-2">
+                <p className="text-2xl font-bold text-onehalf-light">{location.address.line1}</p>
+                {location.address.line2 && <p className="text-xl text-onehalf-light">{location.address.line2}</p>}
+                <p className="text-lg text-onehalf-gray">
+                  {location.address.city}, {location.address.state} {location.address.zip}
+                </p>
+              </div>
+
+              <div className="p-4 bg-black/40 mt-auto border-t border-onehalf-gray/30">
+                <div className="flex items-start space-x-3 mb-4">
+                  <Clock className="text-onehalf-yellow flex-shrink-0 mt-1" size={20} />
+                  <div>
+                    <p className="font-bold text-onehalf-yellow uppercase text-xs tracking-wider">Hours & Info</p>
+                    <p className="text-onehalf-light">{location.pollingHours || 'Not specified'}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between text-xs text-onehalf-gray pt-2 border-t border-onehalf-gray/10">
+                  <span>Source: {location.sources[0].name}</span>
+                  {location.sources[0].official && (
+                    <span className="flex items-center text-onehalf-green">
+                      <CheckCircle size={12} className="mr-1" /> Verified
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 };
 
 export default PollingLocations;

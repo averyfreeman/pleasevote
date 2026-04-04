@@ -1,8 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Head from 'next/head';
-import { Button } from 'react-bootstrap';
-import { Jumbotron } from 'styles/styledComponents';
+import {
+  Users,
+  MapPin,
+  Calendar,
+  ArrowRightCircle,
+  Vote,
+  Info,
+  ExternalLink
+} from 'lucide-react';
 
 import CountdownTimer from 'Components/Cards/CountdownTimer';
 import AddressModal from 'Components/Modals/AddressModal';
@@ -15,86 +22,91 @@ import IconsBar from 'Components/NavElements/IconsBar';
 const Home = () => {
   const [addressModal, showAddressModal] = useState(false);
   const [electionModal, showElectionModal] = useState(false);
+  const [hasStoredValues, setHasStoredValues] = useState(false);
+
+  useEffect(() => {
+    const address = window.localStorage.getItem('address');
+    const id = window.localStorage.getItem('id');
+    setHasStoredValues(!!(address || id));
+  }, []);
 
   const handleAddressModal = () => showAddressModal(!addressModal);
-
   const handleElectionModal = () => showElectionModal(!electionModal);
 
   return (
-    <div>
+    <div className="min-h-screen pb-32 bg-onehalf-dark selection:bg-onehalf-blue selection:text-onehalf-dark">
       <Head>
-        <title>PLEASE VOTE™</title>
-        <link rel='icon' href='/favicon.ico' />
+        <title>PLEASE VOTE™ | Your Source for Election Info</title>
+        <link rel='icon' href='/favicon.png' />
       </Head>
-      <main className='container-fluid mt-3 bg-light'>
-        <Jumbotron className='mb-3 text-white'>
-          <h3>
-            Welcome to
-            <span className='float-right'>
-              <i className='fas fa-person-booth fa-5x'></i>
-            </span>
-          </h3>
-          <h1 className='text-light text-center font-weight-bold'>
-            PLEASE VOTE&trade;
-          </h1>
-          <h5 className='text-light text-center font-weight-bold'>
-            Your Source for Election Info
-          </h5>
-        </Jumbotron>
 
+      <main className="container mx-auto px-4 pt-8">
+        {/* Jumbotron Replacement */}
+        <section className="relative overflow-hidden mb-8 p-12 rounded-2xl bg-onehalf-green border-4 border-onehalf-dark shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] flex flex-col items-center text-center group transition-all hover:translate-x-1 hover:translate-y-1 hover:shadow-none">
+          <div className="absolute -top-4 -right-4 opacity-10 group-hover:opacity-20 transition-opacity rotate-12">
+            <Users size={200} className="text-onehalf-dark" />
+          </div>
+
+          <div className="relative z-20">
+            <h3 className="text-2xl font-righteous text-onehalf-dark mb-2 tracking-tight">
+              Welcome to
+            </h3>
+
+            <h1 className="text-6xl md:text-8xl font-black text-onehalf-dark font-righteous mb-4 drop-shadow-xl uppercase tracking-tighter">
+              PLEASE VOTE<span className="text-4xl align-top">™</span>
+            </h1>
+
+            <h5 className="text-xl md:text-2xl font-bold text-onehalf-dark/80 font-righteous max-w-2xl leading-relaxed">
+              Empowering voters with reliable information for every election.
+            </h5>
+          </div>
+        </section>
+
+        {/* Countdown Section */}
         <CountdownTimer
-          endTime='2020-11-03'
-          label='Time Left Until November 3rd:'
+          endTime='2026-11-03'
+          label='Time Left Until the 2026 Midterm Elections:'
         />
 
-        <VoterRegCard />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <VoterRegCard />
+          <StoredInfoCard />
+        </div>
 
-        <StoredInfoCard />
-
-        <div className='text-center'>
-          <Button
-            className='text-black font-weight-bold mt-3 mb-3 shadow'
-            variant='warning'
-            size='lg'
-            block
+        {/* Action Buttons */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+          <button
             onClick={handleAddressModal}
+            className="flex flex-col items-center justify-center p-8 transition-all bg-onehalf-yellow text-onehalf-dark rounded-xl shadow-[6px_6px_0px_0px_rgba(0,0,0,0.5)] hover:shadow-none hover:translate-x-1 hover:translate-y-1 focus:ring-4 focus:ring-onehalf-yellow/50"
           >
-            <div>
-              <i className='fas fa-house-user fa-2x float-right'></i>
-            </div>
-            <div>Enter New Address</div>
-          </Button>
+            <MapPin size={48} className="mb-4" />
+            <span className="text-2xl font-black font-righteous uppercase">Enter Address</span>
+          </button>
 
-          <Button
-            className='text-white font-weight-bold mt-3 mb-3 shadow'
-            variant='success'
-            size='lg'
-            block
+          <button
             onClick={handleElectionModal}
+            className="flex flex-col items-center justify-center p-8 transition-all bg-onehalf-green text-onehalf-dark rounded-xl shadow-[6px_6px_0px_0px_rgba(0,0,0,0.5)] hover:shadow-none hover:translate-x-1 hover:translate-y-1 focus:ring-4 focus:ring-onehalf-green/50"
           >
-            <div>
-              <i className='fas fa-table fa-2x float-right'></i>
-            </div>
-            <div>Choose Your Election</div>
-          </Button>
+            <Calendar size={48} className="mb-4" />
+            <span className="text-2xl font-black font-righteous uppercase text-center">Choose Election</span>
+          </button>
 
           <Link href='/voterinfo'>
-            <Button size='lg' block className='font-weight-bold mb-5 shadow'>
-              <div>
-                <i className='fas fa-arrow-alt-circle-right fa-2x float-right'></i>{' '}
-              </div>
-              <div className='text-center'>Continue with Stored Values</div>
-            </Button>
+            <a className={`flex flex-col items-center justify-center p-8 transition-all bg-onehalf-blue text-onehalf-dark rounded-xl shadow-[6px_6px_0px_0px_rgba(0,0,0,0.5)] hover:shadow-none hover:translate-x-1 hover:translate-y-1 focus:ring-4 focus:ring-onehalf-blue/50 ${!hasStoredValues && 'opacity-50 grayscale'}`}>
+              <ArrowRightCircle size={48} className="mb-4" />
+              <span className="text-2xl font-black font-righteous uppercase text-center">Continue Stored</span>
+            </a>
           </Link>
         </div>
 
         <AddressModal show={addressModal} onHide={handleAddressModal} />
-
         <ElectionInfoModal show={electionModal} onHide={handleElectionModal} />
       </main>
-      <footer>
+
+      <footer className="container mx-auto px-4 pb-20">
         <ServiceDisclaimer />
       </footer>
+
       <IconsBar />
     </div>
   );

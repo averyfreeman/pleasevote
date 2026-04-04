@@ -1,58 +1,45 @@
-import Link from 'next/link';
-
 import { useState } from 'react';
-import { Accordion, Button, Card } from 'react-bootstrap';
+import { ChevronDown, ChevronUp, AlertTriangle, ExternalLink } from 'lucide-react';
 
-const VoterRegCard = (props) => {
+const VoterRegCard = () => {
   const [isOpen, setIsOpen] = useState(true);
 
-  const handleIsOpen = () => setIsOpen(!isOpen);
+  const toggleOpen = () => setIsOpen(!isOpen);
 
   return (
-    <Accordion defaultActiveKey='0' onClick={handleIsOpen}>
-      <Card className='mb-3 shadow'>
-        <Accordion.Toggle
-          as={Card.Header}
-          color='Primary'
-          eventKey='0'
-          style={{ cursor: 'pointer' }}
-        >
-          <h3 className='card-header bg-primary text-white'>
-            <span className='text-left'>Are You Registered?</span>
-            <span className='float-right'>
-              {isOpen && <i className='fas fa-times-circle'></i>}
-              {!isOpen && <i className='fas fa-plus-circle'></i>}
-            </span>
-          </h3>
-        </Accordion.Toggle>
-        <Accordion.Collapse eventKey='0'>
-          <Card.Body className='text-center'>
-            <div>
-              <h1 className='display-1 mt-3'>
-                <span className='float-left'>
-                  <i className='fas fa-exclamation-triangle text-danger 3 mb-3'></i>
-                </span>
-                <Button size='lg' className='font-weight-bold mb-3 shadow'>
-                  <Link href='https://vote.gov'>
-                    <a
-                      className='text-white'
-                      style={{ textDecoration: 'none' }}
-                      target='_blank'
-                    >
-                      Click Here to Register to Vote
-                    </a>
-                  </Link>
-                </Button>
-                <span className='float-right'>
-                  <i className='fas fa-exclamation-triangle text-danger 3 mb-3'></i>
-                </span>
-              </h1>
-              <h5 className='text-center'>(Link to official vote.gov site)</h5>
-            </div>
-          </Card.Body>
-        </Accordion.Collapse>
-      </Card>
-    </Accordion>
+    <div className="mb-4 overflow-hidden border rounded-lg shadow-lg border-onehalf-gray bg-onehalf-dark">
+      <button
+        onClick={toggleOpen}
+        className="flex items-center justify-between w-full px-6 py-4 text-left transition-colors bg-onehalf-blue text-onehalf-dark hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-onehalf-blue focus:ring-inset"
+        aria-expanded={isOpen}
+      >
+        <span className="text-xl font-bold font-righteous">Are You Registered?</span>
+        {isOpen ? <ChevronUp size={24} /> : <ChevronDown size={24} />}
+      </button>
+
+      {isOpen && (
+        <div className="p-8 text-center">
+          <div className="flex flex-col items-center justify-center space-y-6 md:flex-row md:space-y-0 md:space-x-8">
+            <AlertTriangle className="text-onehalf-yellow" size={64} />
+
+            <a
+              href="https://vote.gov"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center px-8 py-4 text-2xl font-bold transition-all rounded-lg shadow-md bg-onehalf-green text-onehalf-dark hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-onehalf-green"
+            >
+              Click Here to Register to Vote
+              <ExternalLink className="ml-3" size={24} />
+            </a>
+
+            <AlertTriangle className="text-onehalf-yellow" size={64} />
+          </div>
+          <p className="mt-6 text-lg text-onehalf-gray italic">
+            (Link to official vote.gov site)
+          </p>
+        </div>
+      )}
+    </div>
   );
 };
 
