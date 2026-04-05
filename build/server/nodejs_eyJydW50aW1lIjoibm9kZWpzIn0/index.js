@@ -496,8 +496,8 @@ var voterinfo_default = UNSAFE_withComponentProps(function VoterInfo() {
 //#region \0virtual:react-router/server-manifest
 var server_manifest_default = {
 	"entry": {
-		"module": "/assets/entry.client-DxuA-Zw5.js",
-		"imports": ["/assets/jsx-runtime-DIKj-fCm.js"],
+		"module": "/assets/entry.client-DKQ88-pi.js",
+		"imports": ["/assets/jsx-runtime-DgJIMY16.js"],
 		"css": []
 	},
 	"routes": {
@@ -514,8 +514,8 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/root-ClDkiehx.js",
-			"imports": ["/assets/jsx-runtime-DIKj-fCm.js"],
+			"module": "/assets/root-CQ_s4yCj.js",
+			"imports": ["/assets/jsx-runtime-DgJIMY16.js"],
 			"css": ["/assets/root-Dmu3fBnj.css"],
 			"clientActionModule": void 0,
 			"clientLoaderModule": void 0,
@@ -535,8 +535,8 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/home-CZBqhn0b.js",
-			"imports": ["/assets/jsx-runtime-DIKj-fCm.js", "/assets/users-D_Xowdr4.js"],
+			"module": "/assets/home-Cx6n6dG1.js",
+			"imports": ["/assets/jsx-runtime-DgJIMY16.js", "/assets/users-DQhF9KJK.js"],
 			"css": [],
 			"clientActionModule": void 0,
 			"clientLoaderModule": void 0,
@@ -556,8 +556,8 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/voterinfo-Phxvd8em.js",
-			"imports": ["/assets/jsx-runtime-DIKj-fCm.js", "/assets/users-D_Xowdr4.js"],
+			"module": "/assets/voterinfo-Dd4jFnjK.js",
+			"imports": ["/assets/jsx-runtime-DgJIMY16.js", "/assets/users-DQhF9KJK.js"],
 			"css": [],
 			"clientActionModule": void 0,
 			"clientLoaderModule": void 0,
@@ -565,8 +565,8 @@ var server_manifest_default = {
 			"hydrateFallbackModule": void 0
 		}
 	},
-	"url": "/assets/manifest-1381d287.js",
-	"version": "1381d287",
+	"url": "/assets/manifest-9cd3fb4d.js",
+	"version": "9cd3fb4d",
 	"sri": void 0
 };
 //#endregion
