@@ -1,9 +1,9 @@
 import { renderToPipeableStream } from "react-dom/server";
-import { Link, Links, Meta, Outlet, Scripts, ScrollRestoration, ServerRouter, UNSAFE_withComponentProps, useLoaderData, useNavigate, useSearchParams } from "react-router";
+import { Form, Link, Links, Meta, Outlet, Scripts, ScrollRestoration, ServerRouter, UNSAFE_withComponentProps, useLoaderData, useNavigate, useSearchParams } from "react-router";
 import { isbot } from "isbot";
 import { PassThrough } from "node:stream";
 import { jsx, jsxs } from "react/jsx-runtime";
-import { Calendar, ChevronLeft, Info, MapPin, Search, Users, Vote } from "lucide-react";
+import { Calendar, ChevronLeft, Info, MapPin, Search, Sliders, Users, Vote } from "lucide-react";
 import { useEffect, useState } from "react";
 //#region \0rolldown/runtime.js
 var __defProp = Object.defineProperty;
@@ -289,6 +289,13 @@ async function fetchVoterInfo(address, electionId) {
 	}
 	return response.json();
 }
+function calculateDistance(lat1, lon1, lat2, lon2) {
+	const R = 3958.8;
+	const dLat = (lat2 - lat1) * Math.PI / 180;
+	const dLon = (lon2 - lon1) * Math.PI / 180;
+	const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+	return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+}
 //#endregion
 //#region app/routes/voterinfo.tsx
 var voterinfo_exports = /* @__PURE__ */ __exportAll({
@@ -313,7 +320,12 @@ async function loader({ request }) {
 var voterinfo_default = UNSAFE_withComponentProps(function VoterInfo() {
 	const { data, error, address } = useLoaderData();
 	const [searchParams] = useSearchParams();
-	parseInt(searchParams.get("radius") || "5");
+	const radius = parseInt(searchParams.get("radius") || "5");
+	const filteredPollingLocations = data?.pollingLocations?.filter((loc) => {
+		if (!loc.latitude || !loc.longitude || !data.normalizedInput.line1) return true;
+		if (data.normalizedInput && loc.latitude && loc.longitude) return calculateDistance(40.054, -83.022, loc.latitude, loc.longitude) <= radius;
+		return true;
+	});
 	if (error) return /* @__PURE__ */ jsxs("main", {
 		className: "container mx-auto px-4 py-24 text-center",
 		children: [
@@ -355,21 +367,62 @@ var voterinfo_default = UNSAFE_withComponentProps(function VoterInfo() {
 					children: [/* @__PURE__ */ jsx(MapPin, { className: "mr-3 text-onehalf-blue" }), address]
 				})
 			] }), /* @__PURE__ */ jsxs("div", {
-				className: "bg-onehalf-dark p-6 rounded-3xl border-4 border-neutral-800",
-				children: [
-					/* @__PURE__ */ jsx("h3", {
-						className: "text-sm font-black uppercase tracking-widest text-neutral-500 mb-2",
-						children: "Upcoming Election"
-					}),
-					/* @__PURE__ */ jsx("div", {
-						className: "text-2xl font-black text-onehalf-yellow uppercase",
-						children: data.election.name
-					}),
-					/* @__PURE__ */ jsx("div", {
-						className: "text-lg font-bold text-neutral-400 italic",
-						children: data.election.electionDay
-					})
-				]
+				className: "flex flex-col md:flex-row gap-4",
+				children: [/* @__PURE__ */ jsxs("div", {
+					className: "bg-onehalf-dark p-6 rounded-3xl border-4 border-neutral-800",
+					children: [
+						/* @__PURE__ */ jsx("h3", {
+							className: "text-sm font-black uppercase tracking-widest text-neutral-500 mb-2",
+							children: "Upcoming Election"
+						}),
+						/* @__PURE__ */ jsx("div", {
+							className: "text-2xl font-black text-onehalf-yellow uppercase",
+							children: data.election.name
+						}),
+						/* @__PURE__ */ jsx("div", {
+							className: "text-lg font-bold text-neutral-400 italic",
+							children: data.election.electionDay
+						})
+					]
+				}), /* @__PURE__ */ jsxs(Form, {
+					method: "get",
+					className: "bg-neutral-900 p-6 rounded-3xl border-4 border-neutral-800 flex flex-col justify-center",
+					children: [
+						/* @__PURE__ */ jsx("input", {
+							type: "hidden",
+							name: "address",
+							value: address || ""
+						}),
+						/* @__PURE__ */ jsxs("div", {
+							className: "flex items-center gap-3 mb-2",
+							children: [/* @__PURE__ */ jsx(Sliders, {
+								size: 16,
+								className: "text-onehalf-blue"
+							}), /* @__PURE__ */ jsx("h3", {
+								className: "text-sm font-black uppercase tracking-widest text-neutral-500",
+								children: "Search Radius"
+							})]
+						}),
+						/* @__PURE__ */ jsxs("div", {
+							className: "flex items-center gap-4",
+							children: [/* @__PURE__ */ jsx("input", {
+								type: "range",
+								name: "radius",
+								min: "1",
+								max: "50",
+								value: radius,
+								onChange: (e) => {
+									const form = e.target.form;
+									if (form) form.requestSubmit();
+								},
+								className: "accent-onehalf-blue w-32"
+							}), /* @__PURE__ */ jsxs("span", {
+								className: "text-xl font-black text-white w-12",
+								children: [radius, "mi"]
+							})]
+						})
+					]
+				})]
 			})]
 		}), /* @__PURE__ */ jsxs("div", {
 			className: "grid grid-cols-1 lg:grid-cols-12 gap-12",
@@ -444,7 +497,7 @@ var voterinfo_default = UNSAFE_withComponentProps(function VoterInfo() {
 					})]
 				}), /* @__PURE__ */ jsx("div", {
 					className: "space-y-6",
-					children: data.pollingLocations?.length ? data.pollingLocations.map((loc, idx) => /* @__PURE__ */ jsxs("div", {
+					children: filteredPollingLocations?.length ? filteredPollingLocations.map((loc, idx) => /* @__PURE__ */ jsxs("div", {
 						className: "bg-onehalf-dark rounded-[2rem] border-4 border-neutral-800 p-8 shadow-xl relative overflow-hidden group",
 						children: [
 							/* @__PURE__ */ jsx("div", {
@@ -496,8 +549,8 @@ var voterinfo_default = UNSAFE_withComponentProps(function VoterInfo() {
 //#region \0virtual:react-router/server-manifest
 var server_manifest_default = {
 	"entry": {
-		"module": "/assets/entry.client-DKQ88-pi.js",
-		"imports": ["/assets/jsx-runtime-DgJIMY16.js"],
+		"module": "/assets/entry.client-F6UAuLkU.js",
+		"imports": ["/assets/jsx-runtime-DUewsXso.js"],
 		"css": []
 	},
 	"routes": {
@@ -514,9 +567,9 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/root-CQ_s4yCj.js",
-			"imports": ["/assets/jsx-runtime-DgJIMY16.js"],
-			"css": ["/assets/root-Dmu3fBnj.css"],
+			"module": "/assets/root-CT2oZDM-.js",
+			"imports": ["/assets/jsx-runtime-DUewsXso.js"],
+			"css": ["/assets/root-CiYqqlTf.css"],
 			"clientActionModule": void 0,
 			"clientLoaderModule": void 0,
 			"clientMiddlewareModule": void 0,
@@ -535,8 +588,8 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/home-Cx6n6dG1.js",
-			"imports": ["/assets/jsx-runtime-DgJIMY16.js", "/assets/users-DQhF9KJK.js"],
+			"module": "/assets/home-DSqQ4IPA.js",
+			"imports": ["/assets/jsx-runtime-DUewsXso.js", "/assets/users-CErdsquC.js"],
 			"css": [],
 			"clientActionModule": void 0,
 			"clientLoaderModule": void 0,
@@ -556,8 +609,8 @@ var server_manifest_default = {
 			"hasClientMiddleware": false,
 			"hasDefaultExport": true,
 			"hasErrorBoundary": false,
-			"module": "/assets/voterinfo-Dd4jFnjK.js",
-			"imports": ["/assets/jsx-runtime-DgJIMY16.js", "/assets/users-DQhF9KJK.js"],
+			"module": "/assets/voterinfo-BuALkkd-.js",
+			"imports": ["/assets/jsx-runtime-DUewsXso.js", "/assets/users-CErdsquC.js"],
 			"css": [],
 			"clientActionModule": void 0,
 			"clientLoaderModule": void 0,
@@ -565,8 +618,8 @@ var server_manifest_default = {
 			"hydrateFallbackModule": void 0
 		}
 	},
-	"url": "/assets/manifest-9cd3fb4d.js",
-	"version": "9cd3fb4d",
+	"url": "/assets/manifest-7aa7402d.js",
+	"version": "7aa7402d",
 	"sri": void 0
 };
 //#endregion
