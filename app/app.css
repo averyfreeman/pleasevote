@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --color-brand: #00ffcc;
+  --color-onehalf-dark: #282c34;
+  --color-onehalf-green: #98c379;
+  --color-onehalf-blue: #61afef;
+  --color-onehalf-yellow: #e5c07b;
+}
+
+:root {
+  color-scheme: dark;
+}

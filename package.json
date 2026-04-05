@@ -1,29 +1,38 @@
 {
-  "name": "next-google-api",
-  "version": "0.1.0",
+  "name": "please-vote-v7",
   "private": true,
+  "type": "module",
   "scripts": {
-    "dev": "NODE_OPTIONS=--openssl-legacy-provider next dev",
-    "build": "NODE_OPTIONS=--openssl-legacy-provider next build",
-    "start": "NODE_OPTIONS=--openssl-legacy-provider next start"
+    "build": "react-router build",
+    "dev": "react-router dev",
+    "start": "react-router-preview",
+    "typecheck": "react-router typegen && tsc"
   },
   "dependencies": {
-    "@react-google-maps/api": "^1.9.12",
-    "googleapis": "^58.0.0",
-    "lucide-react": "^0.344.0",
-    "moment": "^2.27.0",
-    "next": "9.5.2",
-    "react": "16.13.1",
-    "react-dom": "16.13.1",
-    "react-moment": "^0.9.7",
-    "swr": "^0.3.0"
+    "@react-router/node": "^7.14.0",
+    "isbot": "^5.1.37",
+    "lucide-react": "^1.7.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "react-router": "^7.14.0"
   },
   "devDependencies": {
-    "@types/node": "^20.19.39",
-    "@types/react": "^16.9.46",
-    "autoprefixer": "^9.8.8",
-    "postcss": "^7.0.39",
-    "tailwindcss": "^1.9.6",
-    "typescript": "^3.9.7"
+    "@playwright/test": "^1.59.1",
+    "@react-router/dev": "^7.14.0",
+    "@react-router/fs-routes": "^7.14.0",
+    "@tailwindcss/vite": "4.2.2",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@types/node": "^20.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "autoprefixer": "^10.4.27",
+    "jsdom": "^29.0.1",
+    "postcss": "^8.5.8",
+    "tailwindcss": "^4.2.2",
+    "typescript": "^5.7.3",
+    "vite": "^8.0.3",
+    "vite-tsconfig-paths": "^6.1.1",
+    "vitest": "^4.1.2"
   }
 }
