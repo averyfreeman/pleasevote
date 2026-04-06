@@ -1,7 +1,7 @@
 # Instructions for Jules (Agent-Centric Rebuild)
 
 ## Core Mission
-Rebuild "PleaseVote" as a modern information portal. 
+Rebuild "PleaseVote" as a modern information portal.
 **Crucial Context:** This app does NOT facilitate voting. It provides voter info (polling locations, contests, candidates) based on the Voting Information Project (VIP) specification.
 
 ## Tech Stack (Agent-Optimized)
@@ -13,7 +13,7 @@ Rebuild "PleaseVote" as a modern information portal.
 
 ## Data Mapping (Google Civic Information API endpoint schema)
 The backend will parse JSON payloads following Google Civic Information API.  Specification reference is: `https://developers.google.com/civic-information/docs/v2`
-**TEST HINT:** Request parameter `electionId=2000` provides sample data populated from prior presidential cycle.  Useful for testing endpoints that require it as a parameter. 
+**TEST HINT:** Request parameter `electionId=2000` provides sample data populated from prior presidential cycle.  Useful for testing endpoints that require it as a parameter.
 **The following site functions should be available to all users**
 **Endpoint that does not require address:**
  - List all available elections: `https://www.googleapis.com/civicinfo/v2/elections`, request params: `{}`, sample response: ```json
@@ -171,7 +171,7 @@ A build is "Correct" only if these Playwright/Vitest scenarios pass:
 3. **Contest Navigation:** User can view specific candidate details extracted from the `Contest` node.
 
 ## Storage & Performance
-- **Caching:** Use `localStorage` for user address preferences. 
+- **Caching:** Use `localStorage` for user address preferences.
 - **DB (Optional):** Agent has discretion to implement a local SQLite (via Bun) or flat-file cache if Civic API latency exceeds 500ms.
 - **Optimization:** Use Bun-native APIs for file I/O and networking to maximize speed.
 
