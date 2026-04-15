@@ -4,7 +4,7 @@ import type { Route } from "./+types/voterinfo";
 import { fetchVoterInfo, calculateDistance } from "~/lib/api";
 import type { VoterInfoResponse, Contest, PollingLocation } from "~/lib/types";
 
-export async function loader({ request }: Route.LoaderArgs) {
+export async function clientLoader({ request }: Route.ClientLoaderArgs) {
   const url = new URL(request.url);
   const address = url.searchParams.get("address");
 

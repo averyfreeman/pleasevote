@@ -1,5 +1,12 @@
 import { useState, useEffect } from "react";
 
+/**
+ * A countdown timer component that displays the time remaining until a target date.
+ *
+ * @param endTime - The target date and time string (ISO format).
+ * @param label - A descriptive label for the countdown.
+ * @returns A stylized countdown timer card.
+ */
 export default function CountdownTimer({
   endTime,
   label,

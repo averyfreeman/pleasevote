@@ -1,5 +1,5 @@
-import { useLoaderData } from "react-router";
-import { Users, Vote } from "lucide-react";
+import { useLoaderData, Link } from "react-router";
+import { Users, Vote, List } from "lucide-react";
 import CountdownTimer from "~/components/CountdownTimer";
 import AddressInput from "~/components/AddressInput";
 import type { Route } from "./+types/home";
@@ -11,6 +11,10 @@ export function meta({}: Route.MetaArgs) {
   ];
 }
 
+/**
+ * Home Route Component.
+ * Responsive refinements for desktop viewports (>800px).
+ */
 export default function Home() {
   return (
     <main className="container mx-auto px-4 pt-12 md:pt-24 pb-32">
@@ -30,13 +34,13 @@ export default function Home() {
             Welcome to
           </h3>
 
-          <h1 className="text-7xl md:text-[12rem] font-black text-neutral-900 font-sans drop-shadow-2xl uppercase tracking-tightest leading-[0.9]">
+          <h1 className="text-6xl md:text-[10rem] lg:text-[12rem] font-black text-neutral-900 font-sans drop-shadow-2xl uppercase tracking-tightest leading-[0.9]">
             PLEASE VOTE<span className="text-5xl align-top ml-4 font-normal">™</span>
           </h1>
 
           <div className="h-4 w-64 bg-neutral-900/10 rounded-full" />
 
-          <h5 className="text-2xl md:text-5xl font-black text-neutral-900/80 font-sans max-w-6xl leading-tight uppercase italic tracking-tighter">
+          <h5 className="text-xl md:text-4xl lg:text-5xl font-black text-neutral-900/80 font-sans max-w-6xl leading-tight uppercase italic tracking-tighter">
             Empowering voters with reliable information for every election.
           </h5>
         </div>
@@ -49,13 +53,18 @@ export default function Home() {
             endTime="2026-11-03T00:00:00"
             label="2026 Midterm Elections Countdown"
           />
+
+          <Link to="/elections" className="mt-8 flex items-center justify-center p-8 bg-onehalf-dark border-4 border-neutral-800 rounded-3xl text-onehalf-yellow font-black uppercase tracking-widest hover:border-onehalf-yellow transition-all group">
+            <List size={32} className="mr-4 group-hover:rotate-12 transition-transform" />
+            View All Elections
+          </Link>
         </div>
 
         {/* Address Input Section */}
         <div className="lg:col-span-7 flex flex-col justify-center h-full space-y-6">
-          <div className="p-8 bg-neutral-900 rounded-3xl border-4 border-neutral-800 shadow-2xl flex flex-col items-center text-center">
-            <h2 className="text-4xl font-black mb-4 uppercase text-onehalf-blue">Find Your Polling Info</h2>
-            <p className="text-neutral-400 text-lg mb-8 max-w-md">Enter your street address to see upcoming local contests and candidates.</p>
+          <div className="p-8 md:p-12 lg:p-16 bg-neutral-900 rounded-3xl border-4 border-neutral-800 shadow-2xl flex flex-col items-center text-center">
+            <h2 className="text-4xl md:text-6xl font-black mb-6 uppercase text-onehalf-blue tracking-tighter">Find Your Polling Info</h2>
+            <p className="text-neutral-400 text-lg md:text-xl mb-12 max-w-2xl">Enter your street address to see upcoming local contests, candidates, and polling locations for your district.</p>
             <AddressInput />
           </div>
         </div>
