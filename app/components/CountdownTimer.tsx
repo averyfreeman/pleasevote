@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 
+/** Display a live countdown until the supplied ISO timestamp. */
 export default function CountdownTimer({
   endTime,
   label,

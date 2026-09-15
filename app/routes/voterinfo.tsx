@@ -5,6 +5,7 @@ import { fetchVoterInfo, calculateDistance } from "~/lib/api";
 import type { VoterInfoResponse, Contest, PollingLocation } from "~/lib/types";
 
 export async function loader({ request }: Route.LoaderArgs) {
+  /** Load voter information from the address query parameter. */
   const url = new URL(request.url);
   const address = url.searchParams.get("address");
 
@@ -15,19 +16,24 @@ export async function loader({ request }: Route.LoaderArgs) {
   try {
     const data = await fetchVoterInfo(address);
     return { data, address };
-  } catch (error: any) {
-    return { error: error.message, address };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Unable to load voter information";
+    return { error: message, address };
   }
 }
 
+/** Render contests and nearby polling information for the submitted address. */
 export default function VoterInfo() {
   const { data, error, address } = useLoaderData<typeof loader>();
   const [searchParams] = useSearchParams();
-  const radius = parseInt(searchParams.get("radius") || "5");
+  const requestedRadius = Number.parseInt(searchParams.get("radius") || "5", 10);
+  const radius = Number.isFinite(requestedRadius)
+    ? Math.min(50, Math.max(1, requestedRadius))
+    : 5;
 
   // Apply radius-based filtering
   const filteredPollingLocations = data?.pollingLocations?.filter((loc) => {
-    if (!loc.latitude || !loc.longitude || !data.normalizedInput.line1) return true;
+    if (loc.latitude == null || loc.longitude == null || !data.normalizedInput.line1) return true;
     // We'd ideally need the lat/lng of the user's normalizedInput too.
     // For now, if VIP data includes coords for polling locs, we show them.
     // In a real app, we'd geocode the user address first.
