@@ -1,0 +1,30 @@
+---
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+
+const frontmatter = {
+  title: 'PLEASE VOTE™',
+  description: 'Reliable election information for every voter.',
+  template: 'splash',
+};
+
+const base = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`;
+---
+
+<StarlightPage frontmatter={frontmatter} hasSidebar={false} headings={[]}>
+  <main class="landing">
+    <p class="eyebrow">Election information · address-based lookup</p>
+    <h1>Make your next vote <em>count.</em></h1>
+    <p class="lede">PLEASE VOTE™ brings election dates, contests, polling places, and administration links into one focused voter-information flow.</p>
+    <p><a class="action" href={`${base}workflow/`}>Explore the workflow <span aria-hidden="true">→</span></a></p>
+    <div class="facts" aria-label="Project facts">
+      <span><strong>Bun</strong> runtime</span>
+      <span><strong>React Router</strong> app</span>
+      <span><strong>Civic API</strong> data</span>
+    </div>
+    <section class="cards" aria-label="Documentation sections">
+      <a href={`${base}workflow/`}><strong>Voter information flow</strong><span>Submit an address and inspect nearby voting details.</span></a>
+      <a href={`${base}reference/`}><strong>API and data model</strong><span>See the typed election, contest, and polling structures.</span></a>
+      <a href={`${base}development/`}><strong>Development</strong><span>Install, run, and validate the application locally.</span></a>
+    </section>
+  </main>
+</StarlightPage>

@@ -1,3 +1,6 @@
+/** Shared Google Civic Information API response contracts. */
+
+/** A named election and its Civic Information division. */
 export interface Election {
   id: string;
   name: string;
@@ -5,10 +8,12 @@ export interface Election {
   ocdDivisionId: string;
 }
 
+/** The response returned by the elections endpoint. */
 export interface ElectionsResponse {
   elections: Election[];
 }
 
+/** A postal or civic address used by the API. */
 export interface Address {
   locationName?: string;
   line1: string;
@@ -19,6 +24,7 @@ export interface Address {
   zip: string;
 }
 
+/** A polling, early-voting, or ballot drop-off location. */
 export interface PollingLocation {
   address: Address;
   notes?: string;
@@ -30,6 +36,7 @@ export interface PollingLocation {
   sources?: { name: string; official: boolean }[];
 }
 
+/** A candidate listed in an election contest. */
 export interface Candidate {
   name: string;
   party?: string;
@@ -41,6 +48,7 @@ export interface Candidate {
   channels?: { type: string; id: string }[];
 }
 
+/** A contest, office, or referendum on the returned ballot. */
 export interface Contest {
   type: string;
   office?: string;
@@ -54,6 +62,7 @@ export interface Contest {
   sources?: { name: string; official: boolean }[];
 }
 
+/** Complete voter-information response for one address and election. */
 export interface VoterInfoResponse {
   election: Election;
   normalizedInput: Address;

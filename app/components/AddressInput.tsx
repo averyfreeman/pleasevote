@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Form, useNavigate } from "react-router";
 import { MapPin, Search } from "lucide-react";
 
+/** Collect an address and navigate to the voter-information route. */
 export default function AddressInput() {
   const [address, setAddress] = useState("");
   const navigate = useNavigate();

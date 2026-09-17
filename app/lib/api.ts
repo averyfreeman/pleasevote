@@ -1,8 +1,11 @@
+/** Client helpers for the Google Civic Information API. */
+
 import type { ElectionsResponse, VoterInfoResponse } from "./types";
 
 const GOOGLE_CIVIC_API_KEY = process.env.GOOGLE_CIVIC_API_KEY;
 const BASE_URL = "https://www.googleapis.com/civicinfo/v2";
 
+/** Fetch elections that are available for the configured Civic API key. */
 export async function fetchElections(): Promise<ElectionsResponse> {
   const url = `${BASE_URL}/elections?key=${GOOGLE_CIVIC_API_KEY}`;
   const response = await fetch(url);
@@ -12,6 +15,7 @@ export async function fetchElections(): Promise<ElectionsResponse> {
   return response.json();
 }
 
+/** Fetch polling, contest, and administration data for an address. */
 export async function fetchVoterInfo(
   address: string,
   electionId?: number
@@ -33,6 +37,7 @@ export async function fetchVoterInfo(
   return response.json();
 }
 
+/** Return the great-circle distance between two coordinates in miles. */
 export function calculateDistance(
   lat1: number,
   lon1: number,
