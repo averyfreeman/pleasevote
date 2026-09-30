@@ -12,7 +12,7 @@ export default function ContestSection({ contests }: { readonly contests: readon
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 id="contests-heading" className="text-2xl font-black tracking-tight">Contests, candidates, and questions</h2>
-          <p className="mt-1 max-w-3xl text-sm leading-6 text-base-content/65">Open any item to review the provider's details. This list is not an endorsement and does not tell you how to vote.</p>
+          <p className="mt-1 max-w-3xl text-sm leading-6 text-base-content/65">Open an item to see the available details. This list is not an endorsement and does not tell you how to vote.</p>
         </div>
         <span className="badge badge-secondary badge-lg">{contests.length} total</span>
       </div>
@@ -49,7 +49,7 @@ export default function ContestSection({ contests }: { readonly contests: readon
                 ) : null}
                 {contest.referendumSubtitle ? <p className="mt-4 whitespace-pre-line leading-7 text-base-content/80">{contest.referendumSubtitle}</p> : null}
                 {contest.referendumUrl ? <a className="btn btn-outline btn-sm mt-4" href={contest.referendumUrl} target="_blank" rel="noreferrer"><ExternalLink aria-hidden="true" size={15} />Question details<span className="sr-only"> (opens in a new tab)</span></a> : null}
-                {!contest.candidates.length && !contest.referendumSubtitle && !contest.referendumUrl ? <p className="text-sm italic text-base-content/60">The provider did not include additional details for this item.</p> : null}
+                {!contest.candidates.length && !contest.referendumSubtitle && !contest.referendumUrl ? <p className="text-sm italic text-base-content/60">No additional details were provided.</p> : null}
                 {contest.sources.length ? <p className="mt-4 text-xs text-base-content/55">Source: {contest.sources.map((source) => source.name || "Unspecified provider").join(", ")}</p> : null}
               </div>
             </details>

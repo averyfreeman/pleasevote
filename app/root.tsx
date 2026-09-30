@@ -29,7 +29,7 @@ export function Layout({ children }: { children: ReactNode }) {
               <span aria-hidden="true" className="grid size-10 place-items-center rounded-2xl bg-primary text-xl text-primary-content shadow-md">✓</span>
               <span>
                 <span className="block text-lg font-black tracking-tight">PleaseVote</span>
-                <span className="hidden text-xs font-medium text-base-content/60 sm:block">Find official voter information</span>
+                <span className="hidden text-xs font-medium text-base-content/60 sm:block">Election information, made easier</span>
               </span>
             </a>
             <ThemeSwitcher />
@@ -38,8 +38,8 @@ export function Layout({ children }: { children: ReactNode }) {
         {children}
         <footer className="border-t border-base-300 bg-base-100">
           <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-8 text-sm text-base-content/65 sm:px-6 lg:px-8">
-            <p className="font-semibold text-base-content">PleaseVote provides information, not voting services.</p>
-            <p>Always confirm final eligibility, hours, and rules with your official election administrator.</p>
+            <p className="font-semibold text-base-content">PleaseVote is an information service, not a voting service.</p>
+            <p>Check with your election office for final eligibility, hours, and rules.</p>
           </div>
         </footer>
         <ScrollRestoration />

@@ -1,13 +1,15 @@
 ---
 title: Endpoint reference
-description: What each API endpoint and Civic response node means.
+description: What each endpoint and Civic response field means.
 ---
 
 ## Browser-facing endpoints
 
+The Go service keeps provider credentials on the server. It turns the upstream Google responses into a smaller, stable response for the browser. See the [Google Maps Platform Geocoding API](https://developers.google.com/maps/documentation/geocoding) and [Google Civic Information API](https://developers.google.com/civic-information) documentation for the upstream services.
+
 ### `GET /api/v1/elections`
 
-No address is required. Returns the elections visible to the configured Civic key. Each election has `id`, `name`, `electionDay`, and optional `ocdDivisionId`. The homepage uses this for the countdown but can render a safe fallback if the service is unavailable.
+No address is required. Returns the elections available through the server-side Civic connection. Each election has `id`, `name`, `electionDay`, and optional `ocdDivisionId`. The homepage uses this for the countdown and can fall back safely if the service is unavailable.
 
 ### `GET /api/v1/lookup`
 
@@ -26,11 +28,11 @@ The endpoint geocodes the address, calls Civic `voterinfo`, and normalizes these
 - `otherElections`: alternatives returned by Civic, if any.
 - `sources`: official/non-official provider labels.
 
-Provider fields are not silently discarded because they are inconvenient. Missing fields appear as unknown, and the UI explains what needs confirmation.
+Useful upstream fields are kept. Missing fields stay unknown, and the UI tells visitors what needs confirmation.
 
 ### `GET /api/v1/discovery`
 
-Required query parameter: `address`. Optional `electionId`. This independently geocodes and queries another place. The response includes a broad jurisdiction comparison where possible and always includes a warning: discovery does not establish voter eligibility at that place.
+Required query parameter: `address`. Optional query parameter: `electionId`. This looks up another place independently. The response includes a broad jurisdiction comparison where possible and always includes a warning: it does not establish voter eligibility there.
 
 ### `GET /api/v1/openapi.json` and `GET /api/docs`
 
@@ -38,4 +40,4 @@ The former is machine-readable and the latter is human-readable. The OpenAPI fil
 
 ## Error codes
 
-Errors use `{ ok: false, error: { code, message, field?, requestId? } }`. Codes distinguish invalid input, geocoding failure, provider no-data, provider failure, and internal failure. Messages are safe for visitors. API keys, raw provider payloads, and submitted addresses never appear in request IDs or ordinary logs.
+Errors use `{ ok: false, error: { code, message, field?, requestId? } }`. Codes distinguish invalid input, geocoding failure, provider no-data, provider failure, and internal failure. Messages are safe for visitors. Provider credentials, raw payloads, and submitted addresses never appear in request IDs or ordinary logs.

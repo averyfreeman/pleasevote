@@ -33,7 +33,7 @@ test.describe("PleaseVote scenario tests", () => {
     await mockCivicApi(page);
     await page.goto("/");
 
-    await expect(page.locator("h1")).toContainText("Know where");
+    await expect(page.locator("h1")).toContainText("Find the details");
     await expect(page.getByText(/countdown/i)).toBeVisible();
     const input = page.getByLabel("Your address");
     await expect(input).toBeVisible();
@@ -50,12 +50,12 @@ test.describe("PleaseVote scenario tests", () => {
 
     await page.goto("/");
     await page.getByLabel("Your address").fill("211 Garrett Place, Columbus, OH 43214");
-    await page.getByRole("button", { name: "Find voter info" }).click();
+    await page.getByRole("button", { name: "Find my information" }).click();
 
     await expect(page).toHaveURL(/voterinfo/);
     await expect(page.getByRole("heading", { name: "VIP Test Election", exact: true })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Community Center", exact: true })).toBeVisible();
-    await expect(page.getByText("VIP Test Election — not a current election")).toBeVisible();
+    await expect(page.getByText("Test data — not a current election")).toBeVisible();
     expect(lookupRequested).toBe(true);
   });
 

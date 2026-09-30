@@ -3,7 +3,7 @@ import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
 
 const frontmatter = {
   title: 'PLEASE VOTE™',
-  description: 'Reliable election information for every voter.',
+  description: 'Clear election information for every address.',
   template: 'splash',
 };
 
@@ -12,19 +12,19 @@ const base = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL :
 
 <StarlightPage frontmatter={frontmatter} hasSidebar={false} headings={[]}>
   <main class="landing">
-    <p class="eyebrow">Election information · address-based lookup</p>
-    <h1>Make your next vote <em>count.</em></h1>
-    <p class="lede">PleaseVote brings election dates, contests, candidate details, voting-related locations, hours, and official administration links into one focused information flow.</p>
-    <p><a class="action" href={`${base}workflow/`}>Explore the workflow <span aria-hidden="true">→</span></a></p>
+    <p class="eyebrow">Election information · address lookup</p>
+    <h1>Find the details before you go.</h1>
+    <p class="lede">PleaseVote brings election dates, places, hours, contests, candidates, and official election-office links together.</p>
+    <p><a class="action" href={`${base}workflow/`}>See how it works <span aria-hidden="true">→</span></a></p>
     <div class="facts" aria-label="Project facts">
       <span><strong>Node 24</strong> + pnpm</span>
       <span><strong>Go</strong> provider service</span>
       <span><strong>OpenAPI</strong> boundary</span>
     </div>
     <section class="cards" aria-label="Documentation sections">
-      <a href={`${base}workflow/`}><strong>Voter information flow</strong><span>Submit an address and inspect locations, hours, contests, and official links.</span></a>
-      <a href={`${base}api-endpoints/`}><strong>API reference</strong><span>Read what every normalized endpoint and Civic node means.</span></a>
-      <a href={`${base}accessibility/`}><strong>Accessibility</strong><span>Review the keyboard, screen-reader, contrast, and reduced-motion contract.</span></a>
+      <a href={`${base}workflow/`}><strong>How the lookup works</strong><span>Enter an address and review places, hours, contests, and official links.</span></a>
+      <a href={`${base}api-endpoints/`}><strong>API reference</strong><span>See what each endpoint and Civic data field means.</span></a>
+      <a href={`${base}accessibility/`}><strong>Accessibility</strong><span>See how keyboard, screen-reader, contrast, and motion support work.</span></a>
     </section>
     <p class="unicorn" aria-label="Documentation mascot">🦄 The documentation unicorn drops a tiny rainbow whenever a test passes.</p>
   </main>

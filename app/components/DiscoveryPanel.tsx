@@ -35,14 +35,14 @@ export default function DiscoveryPanel({ electionId }: { readonly electionId: st
       <div className="flex items-start gap-3">
         <Compass aria-hidden="true" className="mt-1 shrink-0 text-secondary" />
         <div>
-          <h2 id="discovery-heading" className="text-xl font-black">Looking for voting information somewhere else?</h2>
-          <p className="mt-1 text-sm leading-6 text-base-content/70">Run a separate place lookup for work, travel, or another home. This does not establish that you are eligible to vote there.</p>
+      <h2 id="discovery-heading" className="text-xl font-black">Checking another place?</h2>
+      <p className="mt-1 text-sm leading-6 text-base-content/70">Look up a work address, travel stop, or second home. This does not establish that you can vote there.</p>
         </div>
       </div>
       <form className="mt-4 flex flex-col gap-3 sm:flex-row" onSubmit={submit}>
         <label className="sr-only" htmlFor="discovery-address">Another place</label>
         <input id="discovery-address" className="input input-bordered flex-1 bg-base-100" value={address} onChange={(event) => setAddress(event.target.value)} placeholder="Another address or place" />
-        <button className="btn btn-secondary" type="submit" disabled={loading}>{loading ? <LoaderCircle aria-hidden="true" className="animate-spin" size={18} /> : <Compass aria-hidden="true" size={18} />}Explore this place</button>
+        <button className="btn btn-secondary" type="submit" disabled={loading}>{loading ? <LoaderCircle aria-hidden="true" className="animate-spin" size={18} /> : <Compass aria-hidden="true" size={18} />}Check this place</button>
       </form>
       <p className="mt-2 min-h-5 text-sm font-semibold text-error" aria-live="polite">{error}</p>
       {result ? <DiscoveryResult result={result} /> : null}
@@ -57,7 +57,7 @@ function DiscoveryResult({ result }: { readonly result: DiscoveryResponse }) {
       <p className="font-bold">{result.normalizedAddress.formatted || result.address}</p>
       <p className="mt-2 rounded-xl bg-warning/15 p-3 text-sm leading-6">{result.warning}</p>
       <p className="mt-3 text-sm text-base-content/70">Jurisdiction comparison: <strong>{result.jurisdictionComparison.replaceAll("-", " ")}</strong>. Election: {result.election.name}.</p>
-      {locations.length ? <div className="mt-3 grid gap-3 sm:grid-cols-2">{locations.slice(0, 10).map((location) => <DiscoveryLocation key={location.id} location={location} />)}</div> : <p className="mt-3 text-sm text-base-content/70">No voting-related locations were returned for this place.</p>}
+      {locations.length ? <div className="mt-3 grid gap-3 sm:grid-cols-2">{locations.slice(0, 10).map((location) => <DiscoveryLocation key={location.id} location={location} />)}</div> : <p className="mt-3 text-sm text-base-content/70">No voting locations were returned for this place.</p>}
     </div>
   );
 }

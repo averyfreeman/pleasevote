@@ -1,19 +1,19 @@
 # PLEASE VOTE™
 
-PleaseVote is a neutral, accessible voter-information portal. It helps a visitor retrieve and organize election-day locations, early voting, ballot drop-off, contests, candidates, referenda, hours, directions, and official election-administration links for an address.
+PleaseVote helps people find election information for an address: dates, places to vote, early voting, ballot drop-off, contests, candidates, hours, directions, and official election-office links.
 
-It does not register voters, determine legal eligibility, endorse candidates, cast ballots, or build political profiles. Civic location records are shown as places where voting-related activity may be available; they are not silently relabelled as a single assigned polling place.
+It is an information service, not a voting service. It does not register voters, decide legal eligibility, endorse candidates, accept ballots, or build political profiles. Civic location records are shown as possible election-day locations—not as a guaranteed assigned place.
 
 ## Features
 
-- Address-based voter-information lookup through a server-side Google Maps/Civic integration.
-- Live-election preference with clearly labelled Civic VIP test-election `2000` fallback.
-- Default 25-mile radius, adjustable from 5 to 50 miles, calculated from the submitted address—not a hard-coded origin.
-- Election-day locations, early-vote sites, drop-off locations, hours, distance, directions, official source labels, and missing-coordinate review.
-- All contests, candidates, referenda, election administration links, and a composed print/save-as-PDF voting plan.
-- Separate alternate-place discovery that warns it does not establish eligibility there.
-- Light, dark, and system themes; keyboard-first interaction; screen-reader semantics; reduced-motion support; axe checks.
-- Optional consent companion design is intentionally separate from lookup data and is intake-only in this release.
+- Address-based lookup through Google Maps Platform and Google Civic Information.
+- Live election data first, with Civic test election `2000` clearly marked when live voter data is unavailable.
+- A 25-mile default radius, adjustable from 5 to 50 miles, measured from the submitted address.
+- Election-day locations, early voting, drop-off locations, hours, distances, directions, and source labels.
+- Contests, candidates, referenda, election-office links, and a print/save-as-PDF view.
+- A separate lookup for another place, with a clear eligibility warning.
+- Light, dark, and system themes; keyboard support; screen-reader labels; reduced-motion support; and axe checks.
+- An optional consent companion kept separate from lookup data.
 
 ## Architecture
 
@@ -28,14 +28,17 @@ flowchart LR
     G --> H[Accessible plan and print view]
 ```
 
-The frontend is React Router v7 in Vite SPA mode, built with Node 24 and pnpm. Go owns secrets, provider calls, validation, timeouts, fallback, and static-file serving. The OpenAPI contract keeps the two sides independently testable and leaves room for a future Rust/WASM implementation without making WASM a correctness dependency.
+The frontend is React Router v7 in Vite SPA mode, built with Node 24 and pnpm. Go handles provider calls, validation, timeouts, fallback, and static-file serving. The OpenAPI contract keeps both sides independently testable and leaves room for a future Rust/WASM implementation without making WASM a requirement.
 
 ## Requirements
 
 - Node 24 LTS
 - pnpm 12
 - Go 1.24 or newer (the service uses standard `net/http`)
-- Google Civic Information API and Maps Geocoding API credentials loaded outside the repository
+- A server-side credential for the [Google Maps Platform Geocoding API](https://developers.google.com/maps/documentation/geocoding)
+- A server-side credential for the [Google Civic Information API](https://developers.google.com/civic-information)
+
+The frontend does not need either credential. Keep both on the server and out of browser code, fixtures, logs, and commits.
 
 ## Local development
 
@@ -45,12 +48,7 @@ Install the workspace:
 pnpm install
 ```
 
-If the project has the local secret runner, load credentials into the current shell. The script is ignored and reads secrets from outside the repository:
-
-```bash
-chmod +x ./get-keys.sh
-source ./get-keys.sh
-```
+Before starting the API, configure server-side access to the [Google Maps Platform Geocoding API](https://developers.google.com/maps/documentation/geocoding) and the [Google Civic Information API](https://developers.google.com/civic-information). The frontend can run without provider credentials.
 
 Start the frontend and Go service in separate terminals:
 
@@ -59,7 +57,7 @@ pnpm run dev
 go run ./server/cmd/pleasevote-api
 ```
 
-The Go service is the only component that should call Google. In production it serves `build/client` and `/api` behind nginx/TLS.
+Only the Go service calls Google. In production it serves `build/client` and `/api` behind nginx/TLS.
 
 ## Verification
 
@@ -67,27 +65,28 @@ The Go service is the only component that should call Google. In production it s
 pnpm run verify
 ```
 
-The verification entrypoint runs TypeScript typechecking, unit tests, the static build, Go tests/vet, and the docs build. Individual commands:
+The verification entrypoint runs the copy-policy check, TypeScript typechecking, unit tests, the static build, Go tests/vet, and the docs build. Individual commands:
 
 ```bash
 pnpm run test:unit:coverage
 pnpm run test:e2e
 pnpm run test:a11y
+pnpm run copy:check
 pnpm run docs:typecheck
 pnpm run docs:build
 go test ./...
 go vet ./...
 ```
 
-Browser scenarios use deterministic fixtures. Live probes should be explicit and run only after loading credentials from outside the repository; the VIP `2000` dataset is the stable test path when current elections are empty or unavailable.
+Browser scenarios use deterministic fixtures. The VIP `2000` dataset is the stable test path when current elections are empty or unavailable.
 
 ## Documentation
 
-The purple GitHub Pages documentation covers the product specification, domain vocabulary, architecture decisions, API nodes, endpoint behavior, tests, accessibility requirements, privacy boundaries, deployment, and generated TypeDoc. The documentation unicorn is allowed to drop rainbow confetti when the test suite passes.
+The purple GitHub Pages documentation covers the product specification, domain vocabulary, architecture decisions, API nodes, endpoint behavior, tests, accessibility, privacy, deployment, and generated TypeDoc. The documentation unicorn drops rainbow confetti when the test suite passes.
 
 - Product specification: [`docs/spec.md`](docs/spec.md)
 - Domain context: [`CONTEXT.md`](CONTEXT.md)
 - Architecture decisions: [`docs/adr/`](docs/adr/)
 - Documentation site: [`docs-site/`](docs-site/)
 
-Created with care for voters everywhere.
+Built to make election information easier to use.

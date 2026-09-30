@@ -1,6 +1,6 @@
 ---
 title: Development
-description: Run the PLEASE VOTE™ application locally.
+description: Run PleaseVote locally.
 ---
 
 Install dependencies with Node 24 and pnpm:
@@ -16,10 +16,9 @@ Run the frontend during development:
 pnpm run dev
 ```
 
-Run the Go API service separately with keys loaded by the ignored `get-keys.sh` helper when available. Keys must remain in the environment and never in TypeScript, fixtures, logs, or Git.
+Before starting the API, configure server-side access to the [Google Maps Platform Geocoding API](https://developers.google.com/maps/documentation/geocoding) and the [Google Civic Information API](https://developers.google.com/civic-information). The frontend does not need provider credentials.
 
 ```bash
-source ./get-keys.sh
 go run ./server/cmd/pleasevote-api
 ```
 
@@ -31,4 +30,4 @@ Before publishing changes, run the single verification entrypoint:
 pnpm run verify
 ```
 
-It runs TypeScript typechecking, unit tests, the static build, Go tests/vet, and the docs build when those workspaces are present. Use `pnpm run test:e2e` for the Playwright scenario suite and `pnpm run test:a11y` for axe checks.
+It runs the copy-policy check, TypeScript typechecking, unit tests, the static build, Go tests/vet, and the docs build. Use `pnpm run test:e2e` for the Playwright scenario suite and `pnpm run test:a11y` for axe checks.

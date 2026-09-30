@@ -16,7 +16,7 @@ export default function AdministrationSection({ records }: { readonly records: r
     <section aria-labelledby="administration-heading">
       <div className="flex items-center gap-3">
         <Landmark aria-hidden="true" className="text-primary" />
-        <h2 id="administration-heading" className="text-2xl font-black tracking-tight">Official election contacts and links</h2>
+        <h2 id="administration-heading" className="text-2xl font-black tracking-tight">Election office links</h2>
       </div>
       {records.length ? (
         <div className="mt-4 grid gap-4 md:grid-cols-2">
@@ -35,7 +35,7 @@ export default function AdministrationSection({ records }: { readonly records: r
             </article>
           ))}
         </div>
-      ) : <p className="mt-4 rounded-2xl border border-dashed border-base-300 bg-base-100 p-5 text-sm text-base-content/70">No administration links were returned. Use your state or local election office to confirm information.</p>}
+      ) : <p className="mt-4 rounded-2xl border border-dashed border-base-300 bg-base-100 p-5 text-sm text-base-content/70">No election-office links were returned. Check your state or local election office for the latest information.</p>}
     </section>
   );
 }

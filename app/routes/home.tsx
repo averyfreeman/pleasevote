@@ -49,14 +49,14 @@ export default function Home() {
               Information for every voter
             </div>
             <h1 className="max-w-3xl text-4xl font-black tracking-tight text-base-content sm:text-6xl">
-              Know where, when, and what to expect before you go.
+              Find the details before you go.
             </h1>
             <p className="mt-5 max-w-2xl text-lg leading-8 text-base-content/75">
-              PleaseVote brings together official election information for an address: election-day locations, early voting, ballot drop-off, contests, candidates, and election-administration links.
+              Find local election dates, places to vote, early voting, ballot drop-off, contests, candidates, and official election-office links.
             </p>
             <div className="mt-8 rounded-2xl border border-base-300 bg-base-100 p-5 shadow-lg">
-              <h2 className="text-xl font-extrabold">Start with an address</h2>
-              <p className="mt-1 text-sm text-base-content/65">A street address helps the Civic Information service return the most relevant records.</p>
+              <h2 className="text-xl font-extrabold">Enter your address</h2>
+              <p className="mt-1 text-sm text-base-content/65">We use it to find the election information most relevant to you.</p>
               <div className="mt-5">
                 <AddressInput elections={elections} />
               </div>
@@ -71,8 +71,8 @@ export default function Home() {
               <div className="flex items-start gap-3">
                 <CalendarDays aria-hidden="true" className="mt-0.5 shrink-0 text-secondary" />
                 <div>
-                  <h2 className="font-extrabold">What this site does</h2>
-                  <p className="mt-1 text-sm leading-6 text-base-content/70">It helps you retrieve and organize voter information. It does not register you, endorse candidates, or cast a ballot.</p>
+                  <h2 className="font-extrabold">What you’ll find here</h2>
+                  <p className="mt-1 text-sm leading-6 text-base-content/70">Election information in one place. We don’t register you, endorse candidates, or cast a ballot.</p>
                 </div>
               </div>
             </div>
@@ -83,9 +83,9 @@ export default function Home() {
       <section className="mt-10 grid gap-4 md:grid-cols-3" aria-labelledby="promise-heading">
         <h2 id="promise-heading" className="sr-only">PleaseVote promises</h2>
         {[
-          { icon: ShieldCheck, title: "Official context", text: "Provider source labels stay visible, so you can tell what is official and what needs confirmation." },
-          { icon: CheckCircle2, title: "A complete plan", text: "Results combine places, hours, contests, candidates, referenda, and administration links in one view." },
-          { icon: ExternalLink, title: "Your next step", text: "Use directions, official links, or the print view to take the information with you." },
+          { icon: ShieldCheck, title: "Official sources", text: "Source labels stay visible, so you know what to trust and what to confirm." },
+          { icon: CheckCircle2, title: "The full picture", text: "See places, hours, contests, candidates, questions, and election-office links together." },
+          { icon: ExternalLink, title: "Ready when you are", text: "Get directions, open official links, or print the details for later." },
         ].map(({ icon: Icon, title, text }) => (
           <article key={title} className="rounded-2xl border border-base-300 bg-base-100 p-5 shadow-sm">
             <Icon aria-hidden="true" className="text-primary" />

@@ -25,13 +25,13 @@ export default function AddressInput({ elections = [] }: { readonly elections?: 
     event.preventDefault();
     const trimmedAddress = address.trim();
     if (!trimmedAddress) {
-      setMessage("Enter a street address, city, state, and ZIP code.");
+      setMessage("Enter a full street address, city, state, and ZIP code.");
       return;
     }
 
     localStorage.setItem(ADDRESS_STORAGE_KEY, trimmedAddress);
     setSaved(true);
-    setMessage("Address saved on this device for your next visit.");
+    setMessage("We’ll remember this address on this device.");
     const electionQuery = electionId ? `&electionId=${encodeURIComponent(electionId)}` : "";
     navigate(`/voterinfo?address=${encodeURIComponent(trimmedAddress)}${electionQuery}`);
   }
@@ -40,7 +40,7 @@ export default function AddressInput({ elections = [] }: { readonly elections?: 
     localStorage.removeItem(ADDRESS_STORAGE_KEY);
     setAddress("");
     setSaved(false);
-    setMessage("Saved address removed from this device.");
+    setMessage("Saved address removed.");
   }
 
   return (
@@ -53,7 +53,7 @@ export default function AddressInput({ elections = [] }: { readonly elections?: 
           <div className="mb-3 text-left">
             <label className="mb-2 block text-sm font-bold text-base-content" htmlFor="election-id">Election (optional)</label>
             <select id="election-id" className="select select-bordered w-full bg-base-100 text-base-content" value={electionId} onChange={(event) => setElectionId(event.target.value)}>
-              <option value="">Use the most relevant upcoming election</option>
+              <option value="">Use the next upcoming election</option>
               {elections.map((election) => <option key={election.id} value={election.id}>{election.name} — {election.electionDay}{election.id === "2000" ? " (test data)" : ""}</option>)}
             </select>
           </div>
@@ -66,7 +66,7 @@ export default function AddressInput({ elections = [] }: { readonly elections?: 
               name="address"
               type="text"
               autoComplete="street-address"
-              placeholder="123 Main Street, City, State ZIP"
+              placeholder="123 Main St, City, State ZIP"
               className="input input-lg join-item w-full border-base-300 bg-base-100 pl-12 text-base-content placeholder:text-base-content/50 focus:border-primary focus:outline-4 focus:outline-primary/25"
               value={address}
               onChange={(event) => {
@@ -79,11 +79,11 @@ export default function AddressInput({ elections = [] }: { readonly elections?: 
           </div>
           <button type="submit" className="btn btn-primary btn-lg join-item px-7">
             <Search aria-hidden="true" size={20} />
-            Find voter info
+            Find my information
           </button>
         </div>
         <p id="address-help" className="mt-3 text-left text-sm text-base-content/65">
-          We use this address to ask the election-information service which records may apply. It is not used to register you or cast a ballot.
+          We use this address to find local election information. We don’t register you or submit a ballot.
         </p>
         <p id="address-status" className="mt-2 min-h-6 text-left text-sm font-semibold text-success" aria-live="polite">
           {message}
@@ -92,7 +92,7 @@ export default function AddressInput({ elections = [] }: { readonly elections?: 
       {saved ? (
         <button type="button" className="btn btn-ghost btn-sm mt-2 gap-2 text-base-content/70" onClick={clearSavedAddress}>
           <Trash2 aria-hidden="true" size={15} />
-          Remove saved address
+          Forget saved address
         </button>
       ) : null}
     </div>

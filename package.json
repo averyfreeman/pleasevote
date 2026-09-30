@@ -17,6 +17,7 @@
     "test:e2e": "playwright test tests/scenarios.spec.ts",
     "test:a11y": "playwright test tests/accessibility.spec.ts",
     "test": "pnpm run test:unit:coverage && pnpm run test:e2e",
+    "copy:check": "node scripts/check-copy.mjs",
     "contract:check": "node scripts/check-openapi.mjs",
     "docs:typecheck": "typedoc --options typedoc.json",
     "docs:build": "pnpm --dir docs-site build",

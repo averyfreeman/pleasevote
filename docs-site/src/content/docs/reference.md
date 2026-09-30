@@ -3,7 +3,7 @@ title: API and data model
 description: The normalized TypeScript contracts that keep provider details usable and honest.
 ---
 
-PleaseVote's browser receives a stable response from the Go service rather than a raw Google payload. The TypeScript interfaces in `app/lib/types.ts` are deliberately explicit and readonly.
+The browser receives a stable response from Go instead of a raw Google payload. The TypeScript interfaces in `app/lib/types.ts` are explicit and readonly.
 
 ## Top-level `LookupResponse`
 
@@ -26,7 +26,7 @@ PleaseVote's browser receives a stable response from the Go service rather than 
 
 ## Location semantics
 
-`VotingLocation.point` is optional. When present, `app/lib/domain.ts` calculates a Haversine distance from `origin`, sorts by distance, and partitions the record into the selected radius or outside-radius group. When absent or invalid, the record goes into an explicit “without coordinates” review group. Coordinates of `0,0` are valid.
+`VotingLocation.point` is optional. When present, `app/lib/domain.ts` calculates a Haversine distance from `origin`, sorts by distance, and places the record inside or outside the selected radius. When absent or invalid, the record goes into a visible “without coordinates” group. Coordinates of `0,0` are valid.
 
 ## TSDoc
 

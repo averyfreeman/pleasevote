@@ -5,7 +5,7 @@ test.describe("accessibility smoke tests", () => {
   test("landing page has no automated axe violations", async ({ page }) => {
     await page.route("**/api/v1/elections", (route) => route.fulfill({ json: { elections: [], retrievedAt: "now" } }));
     await page.goto("/");
-    await page.getByRole("heading", { name: /Know where/ }).waitFor();
+    await page.getByRole("heading", { name: /Find the details/ }).waitFor();
     const results = await new AxeBuilder({ page }).analyze();
     expect(results.violations).toEqual([]);
   });
@@ -13,7 +13,7 @@ test.describe("accessibility smoke tests", () => {
   test("keyboard users can reach the address workflow and theme control", async ({ page }) => {
     await page.route("**/api/v1/elections", (route) => route.fulfill({ json: { elections: [], retrievedAt: "now" } }));
     await page.goto("/");
-    await page.getByRole("heading", { name: /Know where/ }).waitFor();
+    await page.getByRole("heading", { name: /Find the details/ }).waitFor();
     const skipLink = page.locator(".skip-link");
     await skipLink.focus();
     await expect(skipLink).toBeFocused();

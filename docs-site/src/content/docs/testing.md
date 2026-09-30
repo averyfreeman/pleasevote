@@ -7,6 +7,7 @@ description: Scenario, contract, accessibility, and coverage expectations.
 
 | Command | What it proves |
 | --- | --- |
+| `pnpm run copy:check` | Public copy does not expose internal credential-loading details and keeps the provider links present. |
 | `pnpm run typecheck` | React Router generated route types and strict TypeScript compile. |
 | `pnpm run test:unit -- --run` | Haversine, radius boundaries, missing coordinates, response composition, and API error decoding. |
 | `pnpm run test:unit:coverage` | V8 coverage; domain/API logic is required to remain at 100% lines, functions, and statements, with at least 90% branch coverage for defensive JSON-shape handling. |
@@ -16,7 +17,7 @@ description: Scenario, contract, accessibility, and coverage expectations.
 | `go vet ./...` | Go static correctness checks. |
 | `pnpm run verify` | The repository gate used before a Git-BBQ commit. |
 
-Browser scenarios use deterministic route fixtures. Live probes are separate and must be explicitly run with keys loaded from outside the repository; a live outage must not make deterministic correctness tests flaky.
+Browser scenarios use deterministic route fixtures. Live checks are separate; an outage must not make correctness tests flaky.
 
 ## Critical cases
 
@@ -25,4 +26,4 @@ Browser scenarios use deterministic route fixtures. Live probes are separate and
 - A live election with an empty voter response can trigger election `2000`, but test data has a warning.
 - A no-data address has a useful error and official fallback path.
 - Sparse candidates, referenda, source labels, and hours render without invented values.
-- No browser bundle contains `GOOGLE_CIVIC_API_KEY` or `GMAPS_API_KEY`.
+- No browser bundle contains provider credentials.

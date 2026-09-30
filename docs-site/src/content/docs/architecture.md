@@ -14,6 +14,6 @@ flowchart LR
   G --> H[Accessible voting plan + print view]
 ```
 
-The provider layer is server-side and time-bounded. The client owns presentation and deterministic domain operations. A stable contract allows a future Rust/WASM module without changing the visitor workflow; WASM is not required for the current deployment.
+The Go service talks to Google with bounded requests. The client handles presentation and distance calculations. The OpenAPI contract leaves room for a future Rust/WASM module; WASM is not needed for the current deployment.
 
-The companion consent intake is a separate deployment and schema. It is not connected to lookup addresses, political preference, or PleaseVote analytics.
+The consent companion is a separate service and schema. It is not connected to lookup addresses, political preferences, or PleaseVote analytics.

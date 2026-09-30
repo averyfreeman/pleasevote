@@ -2,7 +2,7 @@
 
 ## One-sentence mission
 
-Help every visitor retrieve reliable, understandable voter information for a place and turn it into a practical plan for an election-related visit.
+Help people find reliable, understandable election information for a place and use it with confidence.
 
 ## Non-goals
 
@@ -10,15 +10,15 @@ PleaseVote does not facilitate voting, register voters, accept ballots, determin
 
 ## Primary workflow
 
-1. A visitor lands on a concise explanation of the service.
-2. The visitor enters a street address, city, state, and ZIP code. The browser may remember the last address locally on that device, with a clear remove control.
-3. The Go service geocodes the address with Google Maps and asks Google Civic for elections and voter information. API keys remain server-side.
-4. The service chooses an upcoming live election when usable. If it cannot obtain usable live voter data, it requests Civic's deterministic VIP test election (`2000`) and returns an explicit test-data warning.
-5. The service normalizes the response into the versioned API envelope. It preserves election-day locations, early-vote sites, drop-off sites, contests, candidates, referenda, administration records, other elections, provenance, and retrieval metadata.
-6. The client composes a voting plan. It calculates distances from the submitted address, defaults to 25 miles, lets the visitor choose 5–50 miles, sorts by distance, shows the nearest ten initially, and provides explicit controls for all results, outside-radius results, and records with missing coordinates.
-7. The visitor opens individual location and contest records to disaggregate the details they need. Directions open in an external maps service; the site does not claim an assigned polling location from Civic's `pollingLocations[]` alone.
-8. The visitor can review official administration links and use the print/save-as-PDF view. The first page emphasizes location, hours, directions, contacts, and alternatives; contests follow.
-9. The visitor may run a separate out-and-about discovery lookup. It is independently geocoded and queried, is compared only at a broad jurisdiction level, and always says that it does not establish eligibility.
+1. A visitor lands on a short explanation of the service.
+2. They enter a street address, city, state, and ZIP code. The browser may remember the last address on that device, with a clear remove control.
+3. Go geocodes the address with Google Maps and asks Civic for election information. Credentials stay on the server.
+4. The service chooses a usable upcoming election. If live voter data is unavailable, it requests Civic’s deterministic VIP test election (`2000`) and shows a clear test-data warning.
+5. The service returns election-day locations, early voting, drop-off sites, contests, candidates, questions, election-office links, other elections, source labels, and retrieval details.
+6. The client shows the results near the submitted address, using a 25-mile default and a 5–50 mile display range. It starts with the nearest ten and keeps distant or coordinate-free records available.
+7. Visitors can open a place or contest for more detail. Directions open in an external maps service; Civic’s `pollingLocations[]` data is not treated as an assigned polling place.
+8. Official links and a print/save-as-PDF view make the information easier to take along.
+9. A separate lookup can check another place. It does not establish eligibility there.
 
 ## API contract
 
@@ -30,7 +30,7 @@ The Go service exposes:
 - `GET /api/v1/openapi.json` — machine-readable contract.
 - `GET /api/docs` — human-readable API reference in deployments that enable it.
 
-Provider calls are time-bounded, validate upstream JSON, redact secrets from logs, and return safe error codes. An address is never included in a request ID or ordinary log line.
+Provider calls are time-bounded, validate upstream JSON, keep credentials out of logs, and return safe error codes. An address is never included in a request ID or ordinary log line.
 
 ## Acceptance criteria
 
@@ -47,4 +47,3 @@ Provider calls are time-bounded, validate upstream JSON, redact secrets from log
 ## Privacy and companion boundary
 
 A separate consent companion may accept independently supplied volunteer/contact information using explicit checkbox consent. It may store name, optional contact fields, purpose/channel preferences, consent timestamp/source/status, revocation, and deletion metadata in a separate schema with a least-privilege role. It must not link to PleaseVote addresses, infer political preference, scrape contacts, export rosters, or send messages in this release.
-

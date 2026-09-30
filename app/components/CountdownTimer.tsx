@@ -40,7 +40,7 @@ export default function CountdownTimer({
       <div className="card-body">
         <p className="text-sm font-extrabold uppercase tracking-[0.18em] text-primary">Plan ahead</p>
         <h2 id="countdown-heading" className="card-title text-2xl">{label}</h2>
-        <p className="text-sm text-base-content/65">Use the information below to plan a voting-related visit. Dates and hours can change.</p>
+        <p className="text-sm text-base-content/65">Dates and hours can change, so check the official details before you go.</p>
         <div className="mt-3 grid grid-cols-4 gap-2 text-center" aria-live="polite" aria-atomic="true">
           {[
             ["Days", timeLeft.days],
