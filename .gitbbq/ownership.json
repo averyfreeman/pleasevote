@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "files": {
+    ".agents/mattpocock/DEPENDENCY.yaml": "70e8e46dbb5313b0295f768dce893a8c0d8f0c810ba0a524bafdf370f8b0fb8c",
+    ".gitbbq-manifest.yaml": "9dfb1366a288e2169ca754e67c47f9de1a342fa59c73e041f4ca1f881a7468af",
+    ".gitbbq/.gitignore": "bea45574d15b3fc3d5218fd2dad6e66bdb9fba6b57867ede863383ec55219ebe",
+    ".gitbbq/hooks.json": "602df880af8a1daa40beb0b19586bf3c2423c6db52c825316218be8ef5059f17",
+    ".gitbbq/session.json": "30876867f29370292619855cc4d5ae2fc58a6563ec8f64cc625068b24a909074",
+    ".githabits.yaml": "edf6f0acecb283dbe09fa297641bb0d3d6c893732450bbf89f2d2dd4b3238966"
+  }
+}

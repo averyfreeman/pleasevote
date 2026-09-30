@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "events": [
+    "UserPromptSubmit",
+    "PreToolUse",
+    "PostToolUse",
+    "PostCompact",
+    "Stop"
+  ],
+  "enabled": true
+}

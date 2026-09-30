@@ -1,0 +1,18 @@
+schema_version: 1.0.0
+version: 1
+project_name: pleasevote
+problem: Rebuild PleaseVote as a neutral voter-information portal.
+languages:
+    - go
+matt:
+    repository: https://github.com/mattpocock/skills.git
+    commit: c55ee46073ed923f86ce59a5eb3b6d895095d1b7
+    path: .agents/mattpocock
+hooks:
+    enabled: true
+    required:
+        - UserPromptSubmit
+        - PreToolUse
+        - PostToolUse
+        - PostCompact
+        - Stop

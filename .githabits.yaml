@@ -1,0 +1,21 @@
+schema_version: 1.0.0
+version: 1
+profile: guided
+branch: main
+versioning: semver
+initial_tag: v0.1.0
+commit_style: conventional-commits
+semantic_release: false
+actions:
+    init: true
+    branch: true
+    stage: true
+    commit: true
+    tag: true
+    remote: true
+    push: true
+remote:
+    provider: github
+    visibility: public
+    alias: origin
+    status: pending
