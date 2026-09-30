@@ -18,4 +18,5 @@ remote:
     provider: github
     visibility: public
     alias: origin
-    status: pending
+    status: configured
+    url: https://github.com/averyfreeman/pleasevote.git
