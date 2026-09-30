@@ -42,5 +42,6 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 get-keys.sh
 init-helios-mcp.sh
 .fastembed_cache/
+.helios-kb
 .pleasevote-prompt-2026-09-29.md
 docs-site/public/typedoc/
