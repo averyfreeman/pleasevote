@@ -34,7 +34,7 @@ The frontend is React Router v7 in Vite SPA mode, built with Node 24 and pnpm. G
 
 - Node 24 LTS
 - pnpm 12
-- Go 1.27 or newer (the service uses standard `net/http`)
+- Go 1.24 or newer (the service uses standard `net/http`)
 - Google Civic Information API and Maps Geocoding API credentials loaded outside the repository
 
 ## Local development
@@ -56,7 +56,7 @@ Start the frontend and Go service in separate terminals:
 
 ```bash
 pnpm run dev
-go run ./server
+go run ./server/cmd/pleasevote-api
 ```
 
 The Go service is the only component that should call Google. In production it serves `build/client` and `/api` behind nginx/TLS.

@@ -20,7 +20,7 @@ Run the Go API service separately with keys loaded by the ignored `get-keys.sh` 
 
 ```bash
 source ./get-keys.sh
-go run ./server
+go run ./server/cmd/pleasevote-api
 ```
 
 The production shape is one Go process serving `build/client` and `/api`. Nginx supplies TLS and proxying.
