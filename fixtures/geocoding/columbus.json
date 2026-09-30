@@ -1,0 +1,15 @@
+{
+  "status": "OK",
+  "results": [
+    {
+      "formatted_address": "211 Garrett Pl, Columbus, OH 43214, USA",
+      "geometry": {
+        "location": {
+          "lat": 40.0541,
+          "lng": -83.0222
+        }
+      },
+      "types": ["street_address"]
+    }
+  ]
+}

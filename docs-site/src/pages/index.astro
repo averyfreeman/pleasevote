@@ -14,17 +14,18 @@ const base = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL :
   <main class="landing">
     <p class="eyebrow">Election information · address-based lookup</p>
     <h1>Make your next vote <em>count.</em></h1>
-    <p class="lede">PLEASE VOTE™ brings election dates, contests, polling places, and administration links into one focused voter-information flow.</p>
+    <p class="lede">PleaseVote brings election dates, contests, candidate details, voting-related locations, hours, and official administration links into one focused information flow.</p>
     <p><a class="action" href={`${base}workflow/`}>Explore the workflow <span aria-hidden="true">→</span></a></p>
     <div class="facts" aria-label="Project facts">
-      <span><strong>Bun</strong> runtime</span>
-      <span><strong>React Router</strong> app</span>
-      <span><strong>Civic API</strong> data</span>
+      <span><strong>Node 24</strong> + pnpm</span>
+      <span><strong>Go</strong> provider service</span>
+      <span><strong>OpenAPI</strong> boundary</span>
     </div>
     <section class="cards" aria-label="Documentation sections">
-      <a href={`${base}workflow/`}><strong>Voter information flow</strong><span>Submit an address and inspect nearby voting details.</span></a>
-      <a href={`${base}reference/`}><strong>API and data model</strong><span>See the typed election, contest, and polling structures.</span></a>
-      <a href={`${base}development/`}><strong>Development</strong><span>Install, run, and validate the application locally.</span></a>
+      <a href={`${base}workflow/`}><strong>Voter information flow</strong><span>Submit an address and inspect locations, hours, contests, and official links.</span></a>
+      <a href={`${base}api-endpoints/`}><strong>API reference</strong><span>Read what every normalized endpoint and Civic node means.</span></a>
+      <a href={`${base}accessibility/`}><strong>Accessibility</strong><span>Review the keyboard, screen-reader, contrast, and reduced-motion contract.</span></a>
     </section>
+    <p class="unicorn" aria-label="Documentation mascot">🦄 The documentation unicorn drops a tiny rainbow whenever a test passes.</p>
   </main>
 </StarlightPage>

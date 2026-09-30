@@ -1,0 +1,17 @@
+{
+  "kind": "civicinfo#elections",
+  "elections": [
+    {
+      "id": "3000",
+      "name": "Sample General Election",
+      "electionDay": "2030-05-05",
+      "ocdDivisionId": "ocd-division/country:us/state:oh"
+    },
+    {
+      "id": "2000",
+      "name": "VIP Test Election",
+      "electionDay": "2031-12-06",
+      "ocdDivisionId": "ocd-division/country:us"
+    }
+  ]
+}

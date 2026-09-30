@@ -4,8 +4,12 @@ set -euo pipefail
 git diff --check
 
 if [[ -f pnpm-lock.yaml ]]; then
+  pnpm run contract:check
   pnpm run typecheck
-  pnpm run test:unit -- --run
+  pnpm run test:unit:coverage
+  pnpm run test:e2e
+  pnpm run test:a11y
+  pnpm run docs:typecheck
   pnpm run build
 fi
 

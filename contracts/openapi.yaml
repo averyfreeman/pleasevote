@@ -1,0 +1,549 @@
+openapi: 3.1.0
+info:
+  title: PleaseVote provider boundary
+  version: v1
+  description: |
+    Credential-free voter information assembled from the Google Civic Information
+    API and Google Geocoding API. The browser sends an address; provider keys
+    remain server-side. A lookup response is explicitly labelled live or
+    test-fallback.
+servers:
+  - url: /
+paths:
+  /healthz:
+    get:
+      operationId: health
+      summary: Check API process health
+      responses:
+        '200':
+          description: The process is ready to receive requests.
+  /api/v1/elections:
+    get:
+      operationId: listElections
+      summary: List elections advertised by Civic
+      responses:
+        '200':
+          description: Available election metadata.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ElectionsResponse'
+        default:
+          $ref: '#/components/responses/ErrorResponse'
+  /api/v1/openapi.json:
+    get:
+      operationId: machineApiDocs
+      summary: Return the machine-readable OpenAPI contract
+      responses:
+        '200':
+          description: OpenAPI 3.1 JSON document.
+  /api/v1/lookup:
+    get:
+      operationId: lookupVoterInformation
+      summary: Resolve an address to voter information
+      description: |
+        Geocodes the address, selects the nearest upcoming non-test election
+        with useful Civic data, and returns the complete Civic voter-information
+        tree. If no live election returns useful data, the service queries Civic
+        election 2000 and sets mode to test-fallback with a warning.
+      parameters:
+        - name: address
+          in: query
+          required: true
+          description: The residential address to send to the server-side providers.
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 500
+        - name: electionId
+          in: query
+          required: false
+          description: Optional positive Civic election ID. An explicit ID is never silently replaced.
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+      responses:
+        '200':
+          description: Voter information in the frontend-facing shape.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LookupResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '422':
+          description: The address could not be geocoded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseBody'
+        default:
+          $ref: '#/components/responses/ErrorResponse'
+  /api/v1/discovery:
+    get:
+      operationId: discoverAlternatePlace
+      summary: Look up voting-related information for another place
+      description: The response is an independent place lookup and does not establish voter eligibility at that place.
+      parameters:
+        - name: address
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 500
+        - name: electionId
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+      responses:
+        '200':
+          description: Alternate-place voting information with an eligibility warning.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/LookupResponse'
+                  - type: object
+                    required: [jurisdictionComparison]
+                    properties:
+                      jurisdictionComparison:
+                        type: string
+                        enum: [same-broad-jurisdiction, different-broad-jurisdiction, unknown]
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        default:
+          $ref: '#/components/responses/ErrorResponse'
+  /api/docs:
+    get:
+      operationId: humanApiDocs
+      summary: Human-readable API documentation landing page
+      responses:
+        '200':
+          description: HTML API documentation landing page.
+components:
+  responses:
+    BadRequest:
+      description: The request is missing or contains invalid parameters.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponseBody'
+    ErrorResponse:
+      description: A redacted, structured service or provider error.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponseBody'
+  schemas:
+    Retrieval:
+      type: object
+      required: [apiVersion, requestId, retrievedAt, provider]
+      properties:
+        apiVersion:
+          type: string
+          const: v1
+        requestId:
+          type: string
+          description: Safe correlation identifier; it contains no address or provider credential.
+        retrievedAt:
+          type: string
+          format: date-time
+        provider:
+          type: string
+          const: google-civic-information-api
+        electionId:
+          type: string
+        civicEndpoint:
+          type: string
+          description: The Civic endpoint family used for the request.
+        fallbackUsed:
+          type: boolean
+          description: True when the deterministic VIP test election was used.
+    Point:
+      type: object
+      required: [latitude, longitude]
+      properties:
+        latitude:
+          type: number
+          format: double
+          minimum: -90
+          maximum: 90
+        longitude:
+          type: number
+          format: double
+          minimum: -180
+          maximum: 180
+    Address:
+      type: object
+      properties:
+        locationName:
+          type: string
+        line1:
+          type: string
+        line2:
+          type: string
+        line3:
+          type: string
+        addressLine:
+          type: array
+          description: Provider-supplied display lines when present in a recorded Civic payload.
+          items:
+            type: string
+        city:
+          type: string
+        state:
+          type: string
+        zip:
+          type: string
+    Election:
+      type: object
+      required: [id, name, electionDay]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        electionDay:
+          type: string
+          format: date
+        ocdDivisionId:
+          type: string
+    Source:
+      type: object
+      required: [name, official]
+      properties:
+        name:
+          type: string
+        official:
+          type: boolean
+    PollingLocation:
+      type: object
+      required: [id, kind, address, sources]
+      description: |
+        Civic pollingLocations are locations where the voter is eligible to vote on election day. A returned location is not labelled or represented as an individually assigned polling place by this API.
+      properties:
+        id:
+          type: string
+        kind:
+          type: string
+          enum: [polling, early-vote, drop-off]
+        address:
+          $ref: '#/components/schemas/Address'
+        notes:
+          type: string
+          description: Provider notes such as accessibility entrances.
+        pollingHours:
+          type: string
+        name:
+          type: string
+          description: Name used for early-vote or drop-off locations; Civic generally omits it for election-day locations.
+        voterServices:
+          type: string
+        startDate:
+          type: string
+        endDate:
+          type: string
+        point:
+          anyOf:
+            - $ref: '#/components/schemas/Point'
+            - type: 'null'
+        sources:
+          type: array
+          items:
+            $ref: '#/components/schemas/Source'
+    Channel:
+      type: object
+      required: [type, id]
+      properties:
+        type:
+          type: string
+        id:
+          type: string
+    Candidate:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        party:
+          type: string
+        candidateUrl:
+          type: string
+          format: uri
+        phone:
+          type: string
+        photoUrl:
+          type: string
+          format: uri
+        email:
+          type: string
+          format: email
+        orderOnBallot:
+          type: integer
+          format: int64
+        channels:
+          type: array
+          items:
+            $ref: '#/components/schemas/Channel'
+    District:
+      type: object
+      properties:
+        name:
+          type: string
+        scope:
+          type: string
+        id:
+          type: string
+    Contest:
+      type: object
+      required: [id, type, candidates, sources]
+      description: A contest on the returned voter ballot, including candidate or referendum data when provided by Civic.
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          description: Usually General, Primary, Run-off, or Referendum.
+        primaryParty:
+          type: string
+        electorateSpecifications:
+          type: string
+        special:
+          type: string
+        ballotTitle:
+          type: string
+        office:
+          type: string
+        level:
+          type: array
+          items:
+            type: string
+        roles:
+          type: array
+          items:
+            type: string
+        district:
+          $ref: '#/components/schemas/District'
+        numberElected:
+          type: integer
+          format: int64
+        numberVotingFor:
+          type: integer
+          format: int64
+        ballotPlacement:
+          type: integer
+          format: int64
+        candidates:
+          type: array
+          items:
+            $ref: '#/components/schemas/Candidate'
+        referendumTitle:
+          type: string
+        referendumSubtitle:
+          type: string
+        referendumUrl:
+          type: string
+          format: uri
+        referendumBrief:
+          type: string
+        referendumText:
+          type: string
+        referendumPassageThreshold:
+          type: string
+        referendumEffectOfAbstain:
+          type: string
+        sources:
+          type: array
+          items:
+            $ref: '#/components/schemas/Source'
+    ElectionOfficial:
+      type: object
+      properties:
+        name:
+          type: string
+        title:
+          type: string
+        officePhoneNumber:
+          type: string
+        faxNumber:
+          type: string
+        emailAddress:
+          type: string
+          format: email
+    ElectionAdministrationBody:
+      type: object
+      properties:
+        name:
+          type: string
+        electionInfoUrl:
+          type: string
+          format: uri
+        electionRegistrationUrl:
+          type: string
+          format: uri
+        electionRegistrationConfirmationUrl:
+          type: string
+          format: uri
+        electionNoticeText:
+          type: string
+        electionNoticeUrl:
+          type: string
+          format: uri
+        absenteeVotingInfoUrl:
+          type: string
+          format: uri
+        votingLocationFinderUrl:
+          type: string
+          format: uri
+        ballotInfoUrl:
+          type: string
+          format: uri
+        electionRulesUrl:
+          type: string
+          format: uri
+        voter_services:
+          type: array
+          items:
+            type: string
+        hoursOfOperation:
+          type: string
+        correspondenceAddress:
+          $ref: '#/components/schemas/Address'
+        physicalAddress:
+          $ref: '#/components/schemas/Address'
+        electionOfficials:
+          type: array
+          items:
+            $ref: '#/components/schemas/ElectionOfficial'
+    Administration:
+      type: object
+      required: [sources]
+      properties:
+        name:
+          type: string
+        electionInfoUrl:
+          type: string
+          format: uri
+        electionRegistrationUrl:
+          type: string
+          format: uri
+        electionRegistrationConfirmationUrl:
+          type: string
+          format: uri
+        votingLocationFinderUrl:
+          type: string
+          format: uri
+        ballotInfoUrl:
+          type: string
+          format: uri
+        electionRulesUrl:
+          type: string
+          format: uri
+        jurisdiction:
+          type: string
+        correspondenceAddress:
+          $ref: '#/components/schemas/Address'
+        sources:
+          type: array
+          items:
+            $ref: '#/components/schemas/Source'
+    LookupResponse:
+      type: object
+      required:
+        - address
+        - normalizedAddress
+        - origin
+        - election
+        - mode
+        - pollingLocations
+        - earlyVoteSites
+        - dropOffLocations
+        - contests
+        - administration
+        - otherElections
+        - sources
+        - retrieval
+      properties:
+        address:
+          type: string
+        normalizedAddress:
+          $ref: '#/components/schemas/Address'
+        origin:
+          $ref: '#/components/schemas/Point'
+        election:
+          $ref: '#/components/schemas/Election'
+        mode:
+          type: string
+          enum: [live, test-fallback]
+        warning:
+          type: string
+          description: Present when mode is test-fallback and warns that election 2000 is not current election data.
+        pollingLocations:
+          type: array
+          items:
+            $ref: '#/components/schemas/PollingLocation'
+        earlyVoteSites:
+          type: array
+          items:
+            $ref: '#/components/schemas/PollingLocation'
+        dropOffLocations:
+          type: array
+          items:
+            $ref: '#/components/schemas/PollingLocation'
+        contests:
+          type: array
+          items:
+            $ref: '#/components/schemas/Contest'
+        administration:
+          type: array
+          description: State and local election administration records from Civic's state[] tree.
+          items:
+            $ref: '#/components/schemas/Administration'
+        otherElections:
+          type: array
+          items:
+            $ref: '#/components/schemas/Election'
+        sources:
+          type: array
+          description: Deduplicated source records aggregated from locations, contests, and administration records.
+          items:
+            $ref: '#/components/schemas/Source'
+        mailOnly:
+          type: boolean
+          description: Civic mailOnly flag for precincts that vote only by mail, possibly with ballot drop-off.
+        retrieval:
+          $ref: '#/components/schemas/Retrieval'
+    ElectionsResponse:
+      type: object
+      required: [elections, retrieval]
+      properties:
+        elections:
+          type: array
+          items:
+            $ref: '#/components/schemas/Election'
+        retrieval:
+          $ref: '#/components/schemas/Retrieval'
+    PublicError:
+      type: object
+      required: [code, message, retryable]
+      properties:
+        code:
+          type: string
+          enum: [invalid_request, address_not_found, no_data, upstream_authentication, upstream_unavailable, upstream_invalid_response, server_configuration, method_not_allowed, not_found, internal_error]
+        message:
+          type: string
+        retryable:
+          type: boolean
+    ErrorResponseBody:
+      type: object
+      required: [error, retrieval]
+      properties:
+        error:
+          $ref: '#/components/schemas/PublicError'
+        retrieval:
+          $ref: '#/components/schemas/Retrieval'

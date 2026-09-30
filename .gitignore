@@ -1,5 +1,6 @@
-# dependencies (bun install)
+# dependencies (pnpm install)
 node_modules
+pnpm-debug.log*
 
 # output
 out
@@ -7,6 +8,8 @@ dist
 build
 .react-router
 *.tgz
+playwright-report
+test-results
 
 # code coverage
 coverage
@@ -34,3 +37,10 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 # Finder (MacOS) folder config
 .DS_Store
+
+# Local credentials, helper scripts, and data caches
+get-keys.sh
+init-helios-mcp.sh
+.fastembed_cache/
+.pleasevote-prompt-2026-09-29.md
+docs-site/public/typedoc/

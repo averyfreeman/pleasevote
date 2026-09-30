@@ -24,11 +24,21 @@ export default defineConfig({
         },
         {
           label: 'Reference',
-          items: [{ label: 'API and data model', slug: 'reference' }],
+          items: [
+            { label: 'API and data model', slug: 'reference' },
+            { label: 'Endpoint reference', slug: 'api-endpoints' },
+            { label: 'Architecture', slug: 'architecture' },
+          ],
         },
         {
           label: 'Contributing',
-          items: [{ label: 'Development', slug: 'development' }],
+          items: [
+            { label: 'Development', slug: 'development' },
+            { label: 'Testing', slug: 'testing' },
+            { label: 'Accessibility', slug: 'accessibility' },
+            { label: 'Privacy and consent', slug: 'privacy' },
+            { label: 'Deployment', slug: 'deployment' },
+          ],
         },
       ],
     }),

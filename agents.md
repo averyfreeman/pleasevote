@@ -1,15 +1,17 @@
-# Instructions for Jules (Agent-Centric Rebuild)
+# Instructions for repository agents (Agent-Centric Rebuild)
 
 ## Core Mission
 Rebuild "PleaseVote" as a modern information portal.
 **Crucial Context:** This app does NOT facilitate voting. It provides voter info (polling locations, contests, candidates) based on the Voting Information Project (VIP) specification.
 
 ## Tech Stack (Agent-Optimized)
-- **Runtime:** Bun (Latest Stable)
+- **Frontend toolchain:** Node 24 LTS + pnpm 12
+- **API runtime:** Native Go `net/http` service
 - **Framework:** React Router v7 (Framework Mode) + Vite
-- **UI:** Tailwind CSS + Lucide Icons
+- **UI:** Tailwind CSS + DaisyUI + Lucide Icons
 - **Language:** Strict TypeScript (Explicit Interfaces Only)
-- **Logic:** React 19 Server Components for data fetching; React Router v7 for navigation; Server Actions for user input.
+- **Logic:** React Router v7 SPA `clientLoader` calls the same-origin Go API; provider keys never enter the browser.
+- **Contract:** OpenAPI-first normalized response in `contracts/openapi.yaml`.
 
 ## Data Mapping (Google Civic Information API endpoint schema)
 The backend will parse JSON payloads following Google Civic Information API.  Specification reference is: `https://developers.google.com/civic-information/docs/v2`
@@ -162,20 +164,23 @@ The backend will parse JSON payloads following Google Civic Information API.  Sp
   "kind": "civicinfo#voterInfoResponse"
 }```
 **Produce search queries by filtering available nodes of `voterInfo` endpoint** JSON response data after retrieved.
-- **Logic:** Implement a radius-based filter (default 5mi, user-adjustable up to 50mi) for `PollingLocation` results.
+- **Logic:** Implement a radius-based filter (default 25mi, user-adjustable from 5mi through 50mi) for normalized location results. The radius is a display convenience, not an eligibility decision. Retain records without coordinates in a visible review group.
 
-## Testing Paradigm: Scenario-Based (No Unit Tests)
-A build is "Correct" only if these Playwright/Vitest scenarios pass:
+## Testing Paradigm: Scenario-Based + Unit + Accessibility
+A build is "Correct" only if the following deterministic and provider-boundary checks pass:
 1. **Landing:** Election countdown renders and address input is interactive.
-2. **Address Lookup:** Entering an address triggers a `GET` to the Civic API and populates the UI with local VIP data.
+2. **Address Lookup:** Entering an address triggers a `GET` to the same-origin Go API, which calls Civic server-side, and populates the UI with local VIP data.
 3. **Contest Navigation:** User can view specific candidate details extracted from the `Contest` node.
+4. **Domain unit tests:** Haversine boundaries, zero coordinates, missing coordinates, sorting, fallback and error normalization.
+5. **Accessibility:** Playwright keyboard smoke tests and axe checks pass.
+6. **Go contract tests:** `httptest`, race detector, and vet checks cover provider failure, test-election fallback, redaction, and normalized output.
 
 ## Storage & Performance
-- **Caching:** Use `localStorage` for user address preferences.
-- **DB (Optional):** Agent has discretion to implement a local SQLite (via Bun) or flat-file cache if Civic API latency exceeds 500ms.
-- **Optimization:** Use Bun-native APIs for file I/O and networking to maximize speed.
+- **Storage:** Use `localStorage` only for the last submitted address; do not persist Civic responses or raw addresses on the server.
+- **Caching:** No server response cache is required until measured provider latency and freshness rules justify one.
+- **Optimization:** Prefer bounded Go HTTP calls, explicit timeouts, and deterministic fixtures over speculative caching.
 
 ## Execution Rules
-- **No PRs:** Commit directly to a new branch named `main` (branching off `master`).
+- **No PRs:** Commit directly to `main` after verification, using the repository's Git-BBQ habits.
 - **Autonomy:** User intervention NOT required. Fix all lints/types internally.
 - **Documentation:** Log any environment or `package.json` modifications in `ENV_CHANGES.md`.

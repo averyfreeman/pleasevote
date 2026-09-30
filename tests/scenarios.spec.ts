@@ -1,34 +1,69 @@
-import { test, expect } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
-test.describe("PleaseVote Scenario Tests", () => {
-  test("Landing Page: Election countdown and address input", async ({ page }) => {
+const fixture = {
+  elections: [{ id: "2000", name: "VIP Test Election", electionDay: "2031-12-06" }],
+  retrievedAt: "2031-01-01T00:00:00Z",
+};
+
+const lookup = {
+  address: "211 Garrett Place, Columbus, OH 43214",
+  normalizedAddress: { formatted: "211 Garrett Place, Columbus, OH 43214", line1: "211 Garrett Place", city: "Columbus", state: "OH", zip: "43214" },
+  origin: { latitude: 40.054, longitude: -83.022 },
+  election: fixture.elections[0],
+  mode: "test-fallback",
+  warning: "Fixture data only.",
+  pollingLocations: [{ id: "poll-1", kind: "polling", address: { locationName: "Community Center", line1: "1 Main St", city: "Columbus", state: "OH", zip: "43214" }, pollingHours: "Tue, Dec 6: 6:30 am - 7:30 pm", point: { latitude: 40.055, longitude: -83.023 }, sources: [{ name: "Voting Information Project", official: true }] }],
+  earlyVoteSites: [],
+  dropOffLocations: [],
+  contests: [{ id: "contest-1", type: "General", office: "Mayor", candidates: [{ name: "Ada Lovelace", party: "Independent" }], sources: [{ name: "Voting Information Project", official: true }] }],
+  administration: [{ name: "Secretary of State", electionInfoUrl: "https://example.test/elections", sources: [{ name: "Voting Information Project", official: true }] }],
+  otherElections: [],
+  sources: [{ name: "Voting Information Project", official: true }],
+  retrieval: { civicEndpoint: "voterinfo", fallbackUsed: true, retrievedAt: "2031-01-01T00:00:00Z" },
+};
+
+async function mockCivicApi(page: Page): Promise<void> {
+  await page.route("**/api/v1/elections", (route) => route.fulfill({ json: fixture }));
+  await page.route("**/api/v1/lookup**", (route) => route.fulfill({ json: lookup }));
+  await page.route("**/api/v1/discovery**", (route) => route.fulfill({ json: { ...lookup, warning: "Discovery does not establish eligibility.", jurisdictionComparison: "unknown" } }));
+}
+
+test.describe("PleaseVote scenario tests", () => {
+  test("Landing: countdown renders and address input is interactive", async ({ page }) => {
+    await mockCivicApi(page);
     await page.goto("/");
 
-    // Check for title
-    await expect(page.locator("h1")).toContainText("PLEASE VOTE");
-
-    // Check for countdown
-    await expect(page.locator("text=Countdown")).toBeVisible();
-
-    // Check for address input
-    const input = page.locator('input[placeholder="Enter your address for local info..."]');
+    await expect(page.locator("h1")).toContainText("Know where");
+    await expect(page.getByText(/countdown/i)).toBeVisible();
+    const input = page.getByLabel("Your address");
     await expect(input).toBeVisible();
+    await expect(input).toBeEditable();
   });
 
-  test("Address Lookup: Fetching voter info", async ({ page }) => {
+  test("Address lookup: the UI calls the local API and renders VIP data", async ({ page }) => {
+    let lookupRequested = false;
+    await page.route("**/api/v1/elections", (route) => route.fulfill({ json: fixture }));
+    await page.route("**/api/v1/lookup**", async (route) => {
+      lookupRequested = true;
+      await route.fulfill({ json: lookup });
+    });
+
     await page.goto("/");
+    await page.getByLabel("Your address").fill("211 Garrett Place, Columbus, OH 43214");
+    await page.getByRole("button", { name: "Find voter info" }).click();
 
-    const input = page.locator('input[placeholder="Enter your address for local info..."]');
-    await input.fill("211 Garrett Place, Columbus, OH 43214");
-    await page.click('button:has-text("Find")');
-
-    // Should navigate to voterinfo
     await expect(page).toHaveURL(/voterinfo/);
+    await expect(page.getByRole("heading", { name: "VIP Test Election", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Community Center", exact: true })).toBeVisible();
+    await expect(page.getByText("VIP Test Election — not a current election")).toBeVisible();
+    expect(lookupRequested).toBe(true);
+  });
 
-    // Check for election header
-    await expect(page.locator('h1')).toContainText("Voter Info");
-
-    // Check if some results are displayed (assuming API works or mocked)
-    // Note: In real test we'd mock the API, but instructions mention scenario based tests
+  test("Contest navigation: candidate details are disaggregated from the list", async ({ page }) => {
+    await mockCivicApi(page);
+    await page.goto("/voterinfo?address=211%20Garrett%20Place%2C%20Columbus%2C%20OH%2043214");
+    await expect(page.getByRole("heading", { name: "Contests, candidates, and questions" })).toBeVisible();
+    await page.getByText("Mayor", { exact: true }).click();
+    await expect(page.getByText("Ada Lovelace")).toBeVisible();
   });
 });

@@ -1,204 +1,154 @@
-import { useLoaderData, useSearchParams, Link, Form } from "react-router";
-import { ChevronLeft, MapPin, Calendar, Users, Info, Sliders } from "lucide-react";
+import { useEffect, useState } from "react";
+import { AlertTriangle, ArrowLeft, CalendarDays, FileDown, Info, ListChecks, MapPinned } from "lucide-react";
+import { Link, useLoaderData, useSearchParams } from "react-router";
 import type { Route } from "./+types/voterinfo";
-import { fetchVoterInfo, calculateDistance } from "~/lib/api";
-import type { VoterInfoResponse, Contest, PollingLocation } from "~/lib/types";
 
-export async function loader({ request }: Route.LoaderArgs) {
-  /** Load voter information from the address query parameter. */
+import AdministrationSection from "~/components/AdministrationSection";
+import ContestSection from "~/components/ContestSection";
+import DiscoveryPanel from "~/components/DiscoveryPanel";
+import LocationSection from "~/components/LocationSection";
+import { fetchVoterInfo } from "~/lib/api";
+import { buildVotingPlan, DEFAULT_RADIUS_MILES, normalizeRadius } from "~/lib/domain";
+
+/** Load one normalized voter-information plan from the Go API. */
+export async function clientLoader({ request }: Route.ClientLoaderArgs) {
   const url = new URL(request.url);
-  const address = url.searchParams.get("address");
+  const address = url.searchParams.get("address")?.trim();
+  const electionId = url.searchParams.get("electionId")?.trim() || undefined;
 
   if (!address) {
-    return { error: "No address provided" };
+    return { error: "Enter an address before requesting voter information." } as const;
   }
 
   try {
-    const data = await fetchVoterInfo(address);
-    return { data, address };
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Unable to load voter information";
-    return { error: message, address };
+    const data = await fetchVoterInfo(address, electionId, request.signal);
+    return { data, address } as const;
+  } catch (cause) {
+    const message = cause instanceof Error ? cause.message : "Unable to load voter information.";
+    return { error: message, address } as const;
   }
 }
 
-/** Render contests and nearby polling information for the submitted address. */
+function displayAddress(address: { readonly line1?: string; readonly city?: string; readonly state?: string; readonly zip?: string; readonly formatted?: string }): string {
+  return address.formatted || [address.line1, address.city, address.state, address.zip].filter(Boolean).join(", ");
+}
+
+/** Render an accessible, print-friendly voting information plan. */
 export default function VoterInfo() {
-  const { data, error, address } = useLoaderData<typeof loader>();
-  const [searchParams] = useSearchParams();
-  const requestedRadius = Number.parseInt(searchParams.get("radius") || "5", 10);
-  const radius = Number.isFinite(requestedRadius)
-    ? Math.min(50, Math.max(1, requestedRadius))
-    : 5;
+  const loaderData = useLoaderData<typeof clientLoader>();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const data = "data" in loaderData ? loaderData.data : undefined;
+  const address = "address" in loaderData ? loaderData.address : undefined;
+  const radius = normalizeRadius(searchParams.get("radius") || DEFAULT_RADIUS_MILES);
+  const [radiusDraft, setRadiusDraft] = useState(radius);
 
-  // Apply radius-based filtering
-  const filteredPollingLocations = data?.pollingLocations?.filter((loc) => {
-    if (loc.latitude == null || loc.longitude == null || !data.normalizedInput.line1) return true;
-    // We'd ideally need the lat/lng of the user's normalizedInput too.
-    // For now, if VIP data includes coords for polling locs, we show them.
-    // In a real app, we'd geocode the user address first.
-    // For this task, I'll implement the filter logic assuming we have coords.
-    if (data.normalizedInput && loc.latitude && loc.longitude) {
-       // Mocking user coords as middle of columbus for the VIP test data
-       const userLat = 40.054;
-       const userLng = -83.022;
-       const dist = calculateDistance(userLat, userLng, loc.latitude, loc.longitude);
-       return dist <= radius;
-    }
-    return true;
-  });
+  useEffect(() => setRadiusDraft(radius), [radius]);
 
-  if (error) {
+  if (!data) {
     return (
-      <main className="container mx-auto px-4 py-24 text-center">
-        <h1 className="text-6xl font-black text-red-500 mb-8 uppercase">Error</h1>
-        <p className="text-2xl mb-12 text-neutral-400">{error}</p>
-        <Link to="/" className="px-12 py-6 bg-onehalf-blue text-neutral-950 font-black rounded-2xl uppercase hover:scale-105 transition-all inline-block">
-          Return Home
-        </Link>
+      <main id="main-content" className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
+        <div className="alert alert-error items-start"><AlertTriangle aria-hidden="true" className="mt-0.5" /><div><h1 className="font-black">We could not load voter information</h1><p className="mt-1">{loaderData.error}</p></div></div>
+        <Link to="/" className="btn btn-primary mt-6"><ArrowLeft aria-hidden="true" size={18} />Return to address search</Link>
       </main>
     );
   }
 
-  if (!data) return null;
+  const plan = buildVotingPlan(data, radius);
+  const normalized = displayAddress(data.normalizedAddress) || address || data.address;
+  const fallback = data.mode === "test-fallback";
+
+  function applyRadius(event: React.FormEvent<HTMLFormElement>): void {
+    event.preventDefault();
+    const next = new URLSearchParams(searchParams);
+    next.set("radius", String(normalizeRadius(radiusDraft)));
+    setSearchParams(next);
+  }
 
   return (
-    <main className="container mx-auto px-4 py-12">
-      <header className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6 border-b-8 border-neutral-900 pb-12">
-        <div>
-          <Link to="/" className="flex items-center text-onehalf-blue font-black uppercase mb-4 hover:translate-x-[-4px] transition-transform">
-            <ChevronLeft className="mr-2" /> Back to Home
-          </Link>
-          <h1 className="text-6xl md:text-8xl font-black tracking-tightest uppercase mb-4">
-            Voter Info<span className="text-onehalf-green">.</span>
-          </h1>
-          <div className="flex items-center text-2xl font-bold text-neutral-400">
-            <MapPin className="mr-3 text-onehalf-blue" />
-            {address}
+    <main id="main-content" className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
+      <div className="no-print flex flex-wrap items-center justify-between gap-4">
+        <Link to="/" className="btn btn-ghost btn-sm"><ArrowLeft aria-hidden="true" size={17} />New address</Link>
+        <button type="button" className="btn btn-outline btn-sm" onClick={() => window.print()}><FileDown aria-hidden="true" size={17} />Print / save as PDF</button>
+      </div>
+
+      <header className="mt-6 rounded-3xl border border-primary/20 bg-base-100 p-6 shadow-xl sm:p-8">
+        <div className="flex flex-wrap items-start justify-between gap-6">
+          <div>
+            <p className="text-sm font-black uppercase tracking-[0.18em] text-primary">Your voter-information plan</p>
+            <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-5xl">{data.election.name}</h1>
+            <p className="mt-3 flex items-start gap-2 text-base-content/75"><MapPinned aria-hidden="true" className="mt-0.5 shrink-0 text-primary" size={19} /><span>{normalized}</span></p>
+          </div>
+          <div className="rounded-2xl bg-primary/10 p-5 text-left sm:min-w-56">
+            <p className="text-xs font-black uppercase tracking-wider text-base-content/60">Election day</p>
+            <p className="mt-1 text-2xl font-black text-primary">{data.election.electionDay || "Date not provided"}</p>
+            <p className="mt-2 text-sm text-base-content/65">Information retrieved for planning purposes.</p>
           </div>
         </div>
-
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="bg-onehalf-dark p-6 rounded-3xl border-4 border-neutral-800">
-            <h3 className="text-sm font-black uppercase tracking-widest text-neutral-500 mb-2">Upcoming Election</h3>
-            <div className="text-2xl font-black text-onehalf-yellow uppercase">{data.election.name}</div>
-            <div className="text-lg font-bold text-neutral-400 italic">{data.election.electionDay}</div>
-          </div>
-
-          <Form method="get" className="bg-neutral-900 p-6 rounded-3xl border-4 border-neutral-800 flex flex-col justify-center">
-            <input type="hidden" name="address" value={address || ""} />
-            <div className="flex items-center gap-3 mb-2">
-              <Sliders size={16} className="text-onehalf-blue" />
-              <h3 className="text-sm font-black uppercase tracking-widest text-neutral-500">Search Radius</h3>
-            </div>
-            <div className="flex items-center gap-4">
-              <input
-                type="range"
-                name="radius"
-                min="1"
-                max="50"
-                value={radius}
-                onChange={(e) => {
-                  const form = e.target.form;
-                  if (form) form.requestSubmit();
-                }}
-                className="accent-onehalf-blue w-32"
-              />
-              <span className="text-xl font-black text-white w-12">{radius}mi</span>
-            </div>
-          </Form>
+        {fallback ? <div className="alert alert-warning mt-6 items-start"><AlertTriangle aria-hidden="true" className="mt-0.5" /><div><h2 className="font-black">VIP Test Election — not a current election</h2><p className="mt-1 text-sm">The live election did not return usable voter information, so this deterministic test dataset is shown for development and verification. Do not use it to plan a real vote.</p></div></div> : null}
+        <div className="mt-6 grid gap-3 border-t border-base-300 pt-5 sm:grid-cols-4">
+          <SummaryStat label="Election-day locations" value={data.pollingLocations.length} />
+          <SummaryStat label="Early-vote sites" value={data.earlyVoteSites.length} />
+          <SummaryStat label="Drop-off locations" value={data.dropOffLocations.length} />
+          <SummaryStat label="Contests / questions" value={data.contests.length} />
         </div>
+        {data.mailOnly ? <p className="mt-5 rounded-xl bg-info/10 p-3 text-sm font-semibold text-base-content/75">The provider marked this response as mail-only. Review the official administration links for ballot-return instructions and deadlines.</p> : null}
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-        {/* Left Column: Contests */}
-        <section className="lg:col-span-7 space-y-8">
-          <div className="flex items-center gap-4 mb-8">
-            <Calendar className="h-10 w-10 text-onehalf-green" />
-            <h2 className="text-4xl font-black uppercase tracking-tighter">Your Ballot</h2>
-          </div>
-
-          {data.contests?.map((contest: Contest, idx: number) => (
-            <div key={idx} className="bg-neutral-900 rounded-[2rem] border-4 border-neutral-800 p-8 shadow-2xl hover:border-onehalf-blue/50 transition-colors">
-              <div className="flex justify-between items-start mb-6">
-                <div>
-                  <span className="px-4 py-1 bg-neutral-800 text-onehalf-blue text-xs font-black rounded-full uppercase tracking-widest mb-2 inline-block">
-                    {contest.type}
-                  </span>
-                  <h3 className="text-3xl font-black uppercase leading-none">
-                    {contest.office || contest.referendumTitle}
-                  </h3>
-                  {contest.district && (
-                    <p className="text-neutral-500 font-bold mt-2 uppercase text-sm">
-                      {contest.district.scope} - {contest.district.name}
-                    </p>
-                  )}
-                </div>
+      <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
+        <div className="min-w-0 space-y-10">
+          <section className="no-print rounded-2xl border border-base-300 bg-base-100 p-5 shadow-sm" aria-labelledby="radius-heading">
+            <div className="flex items-start gap-3">
+              <Info aria-hidden="true" className="mt-1 text-primary" />
+              <div className="flex-1">
+                <h2 id="radius-heading" className="font-black">Nearby locations</h2>
+                <p className="mt-1 text-sm leading-6 text-base-content/65">Showing locations within {plan.radiusMiles} miles of the geocoded address. The service keeps records without coordinates visible instead of silently dropping them.</p>
+                <form className="mt-4 flex flex-wrap items-center gap-4" onSubmit={applyRadius}>
+                  <label className="font-bold" htmlFor="radius">Search radius</label>
+                  <input id="radius" name="radius" type="range" min="5" max="50" step="1" value={radiusDraft} onChange={(event) => setRadiusDraft(Number(event.target.value))} aria-valuetext={`${radiusDraft} miles`} className="range range-primary min-w-48 flex-1" />
+                  <output htmlFor="radius" className="badge badge-primary badge-lg w-20">{radiusDraft} mi</output>
+                  <button type="submit" className="btn btn-outline btn-sm">Apply radius</button>
+                </form>
               </div>
-
-              {contest.candidates ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {contest.candidates.map((candidate, cIdx) => (
-                    <div key={cIdx} className="bg-onehalf-dark p-6 rounded-2xl border-2 border-neutral-800 flex flex-col items-center text-center group hover:border-onehalf-green/50 transition-all">
-                      {candidate.photoUrl ? (
-                        <img src={candidate.photoUrl} alt={candidate.name} className="w-24 h-24 rounded-full mb-4 border-4 border-neutral-800 object-cover" />
-                      ) : (
-                        <div className="w-24 h-24 rounded-full bg-neutral-800 flex items-center justify-center mb-4 border-4 border-neutral-800">
-                          <Users size={40} className="text-neutral-600" />
-                        </div>
-                      )}
-                      <h4 className="text-xl font-black uppercase tracking-tight">{candidate.name}</h4>
-                      <p className="text-sm font-bold text-onehalf-green uppercase tracking-widest">{candidate.party || "No Party"}</p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="bg-onehalf-dark p-6 rounded-2xl border-2 border-neutral-800 italic text-neutral-500">
-                  {contest.referendumSubtitle || "No candidates listed."}
-                </div>
-              )}
             </div>
-          ))}
-        </section>
+          </section>
 
-        {/* Right Column: Polling Locations */}
-        <aside className="lg:col-span-5 space-y-8">
-          <div className="flex items-center gap-4 mb-8">
-            <MapPin className="h-10 w-10 text-onehalf-blue" />
-            <h2 className="text-4xl font-black uppercase tracking-tighter">Where to Vote</h2>
+          <div id="locations" className="space-y-10">
+            <LocationSection title="Election-day locations" description="Civic identifies these as places where voting may be available on election day. The provider does not establish a single assigned location here; confirm eligibility and hours before traveling." results={plan.pollingLocations} emptyMessage="No coordinate-confirmed election-day locations were returned within this radius. Check the official location finder below and review records without coordinates." />
+            <LocationSection title="Early-vote sites" description="Review the full hours text supplied by the provider. Early voting rules and eligibility can differ by jurisdiction." results={plan.earlyVoteSites} emptyMessage="No early-vote sites were returned within this radius." />
+            <LocationSection title="Ballot drop-off locations" description="These records may describe places to return a ballot. Confirm that this option applies to your ballot and jurisdiction." results={plan.dropOffLocations} emptyMessage="No ballot drop-off locations were returned within this radius." />
           </div>
 
-          <div className="space-y-6">
-            {filteredPollingLocations?.length ? (
-              filteredPollingLocations.map((loc: PollingLocation, idx: number) => (
-                <div key={idx} className="bg-onehalf-dark rounded-[2rem] border-4 border-neutral-800 p-8 shadow-xl relative overflow-hidden group">
-                  <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-100 transition-opacity">
-                    <Info className="text-onehalf-blue" />
-                  </div>
-                  <h4 className="text-2xl font-black uppercase mb-4 text-onehalf-blue pr-8">
-                    {loc.address.locationName}
-                  </h4>
-                  <p className="text-xl font-bold text-white mb-2">{loc.address.line1}</p>
-                  <p className="text-neutral-400 font-bold mb-6">
-                    {loc.address.city}, {loc.address.state} {loc.address.zip}
-                  </p>
+          <ContestSection contests={plan.contests} />
+          <AdministrationSection records={plan.administration} />
+          {data.otherElections.length ? <OtherElections address={data.address} elections={data.otherElections} /> : null}
+          <DiscoveryPanel electionId={data.election.id} />
+        </div>
 
-                  {loc.pollingHours && (
-                    <div className="bg-neutral-900 p-4 rounded-xl border-2 border-neutral-800">
-                      <p className="text-xs font-black uppercase tracking-widest text-neutral-500 mb-1">Hours</p>
-                      <p className="text-sm text-neutral-300 font-mono whitespace-pre-line">{loc.pollingHours}</p>
-                    </div>
-                  )}
-                </div>
-              ))
-            ) : (
-              <div className="p-12 bg-neutral-900 rounded-[2rem] border-4 border-dashed border-neutral-800 text-center">
-                <p className="text-2xl font-black text-neutral-600 uppercase">No Locations Found</p>
-              </div>
-            )}
+        <aside className="no-print h-fit space-y-4 lg:sticky lg:top-6" aria-label="Plan navigation and data notes">
+          <nav className="rounded-2xl border border-base-300 bg-base-100 p-5 shadow-sm" aria-label="Results sections">
+            <h2 className="font-black">Jump to</h2>
+            <ul className="mt-3 space-y-2 text-sm font-bold">
+              <li><a className="link link-primary" href="#locations">Locations and hours</a></li>
+              <li><a className="link link-primary" href="#contests-heading">Contests and candidates</a></li>
+              <li><a className="link link-primary" href="#administration-heading">Official contacts</a></li>
+            </ul>
+          </nav>
+          <div className="rounded-2xl border border-base-300 bg-base-100 p-5 text-sm shadow-sm">
+            <h2 className="font-black">About this result</h2>
+            <p className="mt-2 leading-6 text-base-content/70">Retrieved {new Date(data.retrieval.retrievedAt).toLocaleString()} from the server-side Civic integration. Provider source labels are preserved on each section.</p>
+            {data.otherElections.length ? <p className="mt-3 leading-6 text-base-content/70">The provider also listed {data.otherElections.length} other election option(s).</p> : null}
+            <p className="mt-3 flex items-start gap-2 leading-6 text-base-content/70"><ListChecks aria-hidden="true" className="mt-0.5 shrink-0 text-primary" size={17} />Review the official links and confirm the final details with your election administrator.</p>
           </div>
         </aside>
       </div>
     </main>
   );
+}
+
+function SummaryStat({ label, value }: { readonly label: string; readonly value: number }) {
+  return <div><p className="text-2xl font-black text-primary">{value}</p><p className="text-xs font-bold uppercase tracking-wide text-base-content/60">{label}</p></div>;
+}
+
+function OtherElections({ address, elections }: { readonly address: string; readonly elections: readonly { id: string; name: string; electionDay: string }[] }) {
+  return <section className="no-print rounded-2xl border border-base-300 bg-base-100 p-5 shadow-sm" aria-labelledby="other-elections-heading"><h2 id="other-elections-heading" className="text-xl font-black">Other elections for this address</h2><p className="mt-1 text-sm text-base-content/65">Choose another provider-listed election to request its information.</p><ul className="mt-4 space-y-2">{elections.map((election) => <li key={election.id}><Link className="link link-primary font-bold" to={`/voterinfo?address=${encodeURIComponent(address)}&electionId=${encodeURIComponent(election.id)}`}>{election.name} — {election.electionDay}</Link></li>)}</ul></section>;
 }

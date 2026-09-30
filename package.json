@@ -1,12 +1,26 @@
 {
-  "name": "please-vote-v7",
+  "name": "pleasevote",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@12.6.0",
+  "engines": {
+    "node": ">=24.0.0 <25"
+  },
   "scripts": {
-    "build": "bun --bun react-router build",
-    "dev": "bun --bun react-router dev",
-    "start": "react-router-preview",
-    "typecheck": "react-router typegen && tsc"
+    "build": "react-router build",
+    "dev": "react-router dev",
+    "preview": "vite preview",
+    "typecheck": "react-router typegen && tsc --noEmit",
+    "test:unit": "vitest",
+    "test:unit:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test tests/scenarios.spec.ts",
+    "test:a11y": "playwright test tests/accessibility.spec.ts",
+    "test": "pnpm run test:unit:coverage && pnpm run test:e2e",
+    "contract:check": "node scripts/check-openapi.mjs",
+    "docs:typecheck": "typedoc --options typedoc.json",
+    "docs:build": "pnpm --dir docs-site build",
+    "verify": "bash scripts/verify.sh"
   },
   "dependencies": {
     "@react-router/node": "^7.14.0",
@@ -17,23 +31,30 @@
     "react-router": "^7.14.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.0",
     "@playwright/test": "^1.59.1",
     "@react-router/dev": "^7.14.0",
     "@react-router/fs-routes": "^7.14.0",
     "@tailwindcss/vite": "^4.2.2",
+    "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
-    "@types/node": "^20.19.39",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/node": "^24.0.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "@vercel/react-router": "^1.2.6",
     "autoprefixer": "^10.4.27",
+    "axe-core": "^4.11.0",
+    "daisyui": "^5.0.50",
     "jsdom": "^29.0.1",
     "postcss": "^8.5.8",
     "tailwindcss": "^4.2.2",
+    "typedoc": "^0.28.0",
+    "typedoc-plugin-markdown": "^4.8.0",
     "typescript": "^5.7.3",
     "vite": "^8.0.3",
-    "vite-tsconfig-paths": "^6.1.1",
-    "vitest": "^4.1.2"
+    "vitest": "^4.1.2",
+    "@vitest/coverage-v8": "^4.1.2",
+    "yaml": "^2.8.1"
   }
 }

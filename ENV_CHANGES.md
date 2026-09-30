@@ -1,25 +1,15 @@
-# Environment Changes (PleaseVote v7 Rebuild)
+# Environment changes
 
-## Infrastructure Update
-- Migrated from **Next.js 9/Node 14** to **React Router v7/Bun**.
-- Initialized project using `bun init` and added modern React 19 dependencies.
-- Replaced legacy Webpack 4 with **Vite 8** for lightning-fast development.
-- Configured **Tailwind CSS v4** as a Vite plugin.
+## 2026-09-29 — provider-boundary rebuild
 
-## Dependency Additions
-- `react-router`: Modern framework for routing and server-side rendering.
-- `bun`: Modern runtime and package manager.
-- `lucide-react`: Modern icon library (replacement for older icon sets).
-- `isbot`: Used for entry.server logic to identify bot traffic.
-- `@playwright/test`: For scenario-based testing.
-- `@tailwindcss/vite`: Tailwind v4's first-class Vite integration.
+- Standardized the frontend workspace on Node 24 LTS and pnpm 12.6.0.
+- Removed Bun lock/tooling, npm's docs lockfile, the Vercel React Router preset, and the obsolete Vercel runtime configuration.
+- Updated React Router, React, Vite, Tailwind, DaisyUI, Playwright, Vitest, TypeDoc, and type packages through the new pnpm lockfile.
+- Kept React Router v7 + Vite in SPA mode; route data now uses `clientLoader` because server `loader` exports are invalid in SPA builds.
+- Added a native Go provider service for server-only Google Civic and Maps credentials, OpenAPI, live/test election selection, geocoding, validation, errors, redacted logs, and static frontend serving.
+- Added the separate consent companion service and Postgres schema with no lookup-address linkage, exports, messaging, or political inference.
+- Added Vitest/Playwright/axe coverage, Go unit/httptest/race/vet checks, and generated TypeDoc/ purple Astro Starlight documentation.
 
-## Architectural Changes
-- **Server Components:** Data fetching for voter info is handled directly in the `loader` of `voterinfo.tsx`.
-- **TypeScript:** Enforced strict typing for all API responses and components.
-- **Project Structure:** Flat component and route structure as requested.
+## Credential handling
 
-## Dev Tools
-- Added `typecheck`, `build`, `dev`, and `start` scripts to `package.json`.
-- Configured `playwright.config.ts` for automated UI verification.
-- Implemented `tsconfig.json` for ESM support and React 19 types.
+`get-keys.sh` is a local ignored helper supplied by the operator. It reads keys from outside the repository and exports `GOOGLE_CIVIC_API_KEY` and `GMAPS_API_KEY` for the Go service. No key is stored in the repository, browser bundle, fixture, test output, or logs.

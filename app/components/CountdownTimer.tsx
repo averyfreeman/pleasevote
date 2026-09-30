@@ -1,68 +1,60 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 
-/** Display a live countdown until the supplied ISO timestamp. */
+interface TimeLeft {
+  readonly days: number;
+  readonly hours: number;
+  readonly minutes: number;
+  readonly seconds: number;
+}
+
+/** Calculate non-negative time parts for a target timestamp. */
+function calculateTimeLeft(endTime: string, now: number = Date.now()): TimeLeft {
+  const distance = Math.max(0, new Date(endTime).getTime() - now);
+  return {
+    days: Math.floor(distance / 86_400_000),
+    hours: Math.floor((distance % 86_400_000) / 3_600_000),
+    minutes: Math.floor((distance % 3_600_000) / 60_000),
+    seconds: Math.floor((distance % 60_000) / 1_000),
+  };
+}
+
+/** Display a live, screen-reader-friendly countdown to an election date. */
 export default function CountdownTimer({
   endTime,
   label,
 }: {
-  endTime: string;
-  label: string;
+  /** ISO timestamp for the election day. */
+  readonly endTime: string;
+  /** Accessible heading for the countdown. */
+  readonly label: string;
 }) {
-  const [timeLeft, setTimeLeft] = useState<{
-    days: number;
-    hours: number;
-    minutes: number;
-    seconds: number;
-  } | null>(null);
+  const [timeLeft, setTimeLeft] = useState<TimeLeft>(() => calculateTimeLeft(endTime));
 
   useEffect(() => {
-    const target = new Date(endTime).getTime();
-
-    const interval = setInterval(() => {
-      const now = new Date().getTime();
-      const distance = target - now;
-
-      if (distance < 0) {
-        clearInterval(interval);
-        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-        return;
-      }
-
-      setTimeLeft({
-        days: Math.floor(distance / (1000 * 60 * 60 * 24)),
-        hours: Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
-        minutes: Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60)),
-        seconds: Math.floor((distance % (1000 * 60)) / 1000),
-      });
-    }, 1000);
-
-    return () => clearInterval(interval);
+    const interval = window.setInterval(() => setTimeLeft(calculateTimeLeft(endTime)), 1_000);
+    return () => window.clearInterval(interval);
   }, [endTime]);
 
-  if (!timeLeft) return null;
-
   return (
-    <div className="bg-onehalf-dark p-6 rounded-2xl border-4 border-neutral-800 shadow-xl text-center">
-      <h3 className="text-xl font-bold text-onehalf-blue mb-4 uppercase tracking-wider">
-        {label}
-      </h3>
-      <div className="grid grid-cols-4 gap-4">
-        {[
-          { label: "Days", value: timeLeft.days },
-          { label: "Hours", value: timeLeft.hours },
-          { label: "Minutes", value: timeLeft.minutes },
-          { label: "Seconds", value: timeLeft.seconds },
-        ].map((item) => (
-          <div key={item.label} className="flex flex-col">
-            <span className="text-3xl md:text-5xl font-black text-onehalf-green">
-              {item.value}
-            </span>
-            <span className="text-xs md:text-sm text-neutral-400 uppercase">
-              {item.label}
-            </span>
-          </div>
-        ))}
+    <section className="card border border-primary/20 bg-base-100 shadow-xl" aria-labelledby="countdown-heading">
+      <div className="card-body">
+        <p className="text-sm font-extrabold uppercase tracking-[0.18em] text-primary">Plan ahead</p>
+        <h2 id="countdown-heading" className="card-title text-2xl">{label}</h2>
+        <p className="text-sm text-base-content/65">Use the information below to plan a voting-related visit. Dates and hours can change.</p>
+        <div className="mt-3 grid grid-cols-4 gap-2 text-center" aria-live="polite" aria-atomic="true">
+          {[
+            ["Days", timeLeft.days],
+            ["Hours", timeLeft.hours],
+            ["Minutes", timeLeft.minutes],
+            ["Seconds", timeLeft.seconds],
+          ].map(([unit, value]) => (
+            <div key={unit} className="rounded-xl bg-primary/10 px-2 py-3">
+              <span className="block text-2xl font-black tabular-nums text-primary sm:text-3xl">{value}</span>
+              <span className="text-xs font-bold uppercase tracking-wide text-base-content/65">{unit}</span>
+            </div>
+          ))}
+        </div>
       </div>
-    </div>
+    </section>
   );
 }

@@ -1,0 +1,14 @@
+{
+  "entryPoints": ["app/lib/api.ts", "app/lib/domain.ts", "app/lib/types.ts"],
+  "tsconfig": "tsconfig.json",
+  "plugin": ["typedoc-plugin-markdown"],
+  "out": "docs-site/public/typedoc",
+  "readme": "none",
+  "entryFileName": "index",
+  "categorizeByGroup": false,
+  "excludePrivate": true,
+  "excludeProtected": true,
+  "excludeInternal": true,
+  "includeVersion": true,
+  "githubPages": false
+}

@@ -26,7 +26,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "bun run dev --port 3000",
+    command: "exec ./node_modules/.bin/react-router dev --port 3000",
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
   },

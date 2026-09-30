@@ -1,0 +1,15 @@
+{
+  "kind": "civicinfo#voterInfoResponse",
+  "election": {
+    "id": "3000",
+    "name": "Sample General Election",
+    "electionDay": "2030-05-05",
+    "ocdDivisionId": "ocd-division/country:us/state:oh"
+  },
+  "normalizedInput": {
+    "line1": "211 Garrett Place",
+    "city": "Columbus",
+    "state": "OH",
+    "zip": "43214"
+  }
+}

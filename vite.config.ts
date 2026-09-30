@@ -10,5 +10,11 @@ export default defineConfig({
   server: {
     port: 3000,
     host: true,
+    proxy: {
+      "/api": {
+        target: process.env.PLEASEVOTE_API_ORIGIN ?? "http://localhost:8080",
+        changeOrigin: true,
+      },
+    },
   }
 });
