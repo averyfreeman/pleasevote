@@ -18,9 +18,11 @@ import (
 )
 
 type handlerCivicClient struct {
-	elections civic.ElectionsResponse
-	lookup    civic.VoterInfoResponse
-	err       error
+	elections        civic.ElectionsResponse
+	lookup           civic.VoterInfoResponse
+	divisions        civic.DivisionSearchResponse
+	divisionsAddress civic.DivisionsByAddressResponse
+	err              error
 }
 
 func (f handlerCivicClient) ListElections(context.Context) (civic.ElectionsResponse, error) {
@@ -29,6 +31,14 @@ func (f handlerCivicClient) ListElections(context.Context) (civic.ElectionsRespo
 
 func (f handlerCivicClient) VoterInfo(context.Context, string, *int64) (civic.VoterInfoResponse, error) {
 	return f.lookup, f.err
+}
+
+func (f handlerCivicClient) Divisions(context.Context, string) (civic.DivisionSearchResponse, error) {
+	return f.divisions, f.err
+}
+
+func (f handlerCivicClient) DivisionsByAddress(context.Context, string) (civic.DivisionsByAddressResponse, error) {
+	return f.divisionsAddress, f.err
 }
 
 type handlerGeocoder struct {
@@ -111,6 +121,63 @@ func TestLookupReturnsFrontendFacingStableShape(t *testing.T) {
 	}
 }
 
+func TestLookupPreservesMailOnlyLocationsAndVoterServices(t *testing.T) {
+	service := voterinfo.NewService(voterinfo.Config{
+		Civic: handlerCivicClient{
+			elections: civic.ElectionsResponse{Elections: []civic.Election{{ID: "3000", Name: "Washington Election", ElectionDay: "2030-05-05"}}},
+			lookup: civic.VoterInfoResponse{
+				Status:   "partial",
+				Election: civic.Election{ID: "3000", Name: "Washington Election", ElectionDay: "2030-05-05"},
+				PollingLocations: []civic.PollingLocation{{
+					Address:       civic.Address{LocationName: "Election Day Site", Line1: "1 Main St"},
+					VoterServices: "Accessible voting and same-day registration",
+				}},
+				DropOffLocations: []civic.PollingLocation{{
+					Address:       civic.Address{LocationName: "Ballot Drop Box", Line1: "2 Main St"},
+					VoterServices: "Ballot drop-off",
+				}},
+				State:    []civic.StateInformation{{Name: "Washington"}},
+				MailOnly: true,
+			},
+		},
+		Geocoder: handlerGeocoder{result: geocoding.Result{Location: geocoding.Point{Latitude: 47.6, Longitude: -122.3}}},
+		Now:      func() time.Time { return time.Date(2030, time.January, 1, 0, 0, 0, 0, time.UTC) },
+	})
+	handler := NewHandler(Config{Service: service})
+	recorder := httptest.NewRecorder()
+	handler.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/api/v1/lookup?address=1+Main+St", nil))
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
+	}
+	var response struct {
+		PollingLocations []struct {
+			VoterServices string `json:"voterServices"`
+		} `json:"pollingLocations"`
+		DropOffLocations []struct {
+			VoterServices string `json:"voterServices"`
+		} `json:"dropOffLocations"`
+		MailOnly  bool      `json:"mailOnly"`
+		Warning   string    `json:"warning"`
+		Retrieval Retrieval `json:"retrieval"`
+	}
+	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if len(response.PollingLocations) != 1 || response.PollingLocations[0].VoterServices == "" {
+		t.Fatalf("polling services were lost: %#v", response.PollingLocations)
+	}
+	if len(response.DropOffLocations) != 1 || response.DropOffLocations[0].VoterServices != "Ballot drop-off" {
+		t.Fatalf("drop-off services were lost: %#v", response.DropOffLocations)
+	}
+	if !response.MailOnly {
+		t.Fatal("mailOnly was not preserved as informational metadata")
+	}
+	if response.Retrieval.ProviderStatus != "partial" || response.Warning == "" {
+		t.Fatalf("partial provider status was not surfaced safely: %#v", response)
+	}
+}
+
 func TestLookupValidationUsesStructuredErrorWithoutCallingProviders(t *testing.T) {
 	service := voterinfo.NewService(voterinfo.Config{
 		Civic:    handlerCivicClient{},
@@ -172,6 +239,33 @@ func TestElectionsReturnsVersionedResponse(t *testing.T) {
 	}
 }
 
+func TestDivisionRoutesPreserveOfficialCivicShapes(t *testing.T) {
+	service := voterinfo.NewService(voterinfo.Config{
+		Civic: handlerCivicClient{
+			divisions: civic.DivisionSearchResponse{Kind: "civicinfo#divisionSearchResponse", Results: []civic.Division{{OCDID: "ocd-division/country:us/state:wa", Name: "Washington", Aliases: []string{"ocd-division/country:us/state:wa/cd:1"}}}},
+			divisionsAddress: civic.DivisionsByAddressResponse{
+				Kind:            "civicinfo#divisionSearchResponse",
+				NormalizedInput: civic.Address{Line1: "1 Main St", State: "WA"},
+				Divisions:       map[string]civic.Division{"ocd-division/country:us/state:wa": {Name: "Washington", AlsoKnownAs: []string{"ocd-division/country:us/state:wa/cd:1"}}},
+			},
+		},
+		Geocoder: handlerGeocoder{},
+	})
+	handler := NewHandler(Config{Service: service})
+
+	search := httptest.NewRecorder()
+	handler.ServeHTTP(search, httptest.NewRequest(http.MethodGet, "/api/v1/divisions?query=Washington", nil))
+	if search.Code != http.StatusOK || !strings.Contains(search.Body.String(), "ocd-division/country:us/state:wa") {
+		t.Fatalf("division search response = %d %s", search.Code, search.Body.String())
+	}
+
+	byAddress := httptest.NewRecorder()
+	handler.ServeHTTP(byAddress, httptest.NewRequest(http.MethodGet, "/api/v1/divisionsByAddress?address=1+Main+St", nil))
+	if byAddress.Code != http.StatusOK || !strings.Contains(byAddress.Body.String(), `"divisions"`) || !strings.Contains(byAddress.Body.String(), `"normalizedInput"`) {
+		t.Fatalf("division address response = %d %s", byAddress.Code, byAddress.Body.String())
+	}
+}
+
 func TestOpenAPIRouteReturnsJSONDocument(t *testing.T) {
 	handler := NewHandler(Config{})
 	recorder := httptest.NewRecorder()
@@ -204,4 +298,29 @@ func TestOpenAPIRouteReturnsJSONDocument(t *testing.T) {
 func coordinate(value float64) *civic.Coordinate {
 	coordinate := civic.Coordinate(value)
 	return &coordinate
+}
+
+func TestPublicLocationsRetainsRecordsWithInvalidCoordinates(t *testing.T) {
+	locations := publicLocations([]civic.PollingLocation{
+		{
+			Address:   civic.Address{Line1: "Invalid point"},
+			Latitude:  coordinate(91),
+			Longitude: coordinate(-181),
+		},
+		{
+			Address:   civic.Address{Line1: "Zero point"},
+			Latitude:  coordinate(0),
+			Longitude: coordinate(0),
+		},
+	}, "polling")
+
+	if len(locations) != 2 {
+		t.Fatalf("location count = %d, want 2", len(locations))
+	}
+	if locations[0].Point != nil {
+		t.Fatalf("invalid coordinates were exposed: %#v", locations[0].Point)
+	}
+	if locations[1].Point == nil || locations[1].Point.Latitude != 0 || locations[1].Point.Longitude != 0 {
+		t.Fatalf("zero coordinates were not preserved: %#v", locations[1].Point)
+	}
 }

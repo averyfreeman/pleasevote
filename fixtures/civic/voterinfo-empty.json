@@ -1,5 +1,6 @@
 {
   "kind": "civicinfo#voterInfoResponse",
+  "status": "success",
   "election": {
     "id": "3000",
     "name": "Sample General Election",

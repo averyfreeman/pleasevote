@@ -2,10 +2,23 @@ package companion
 
 import (
 	"encoding/json"
+	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"strings"
 	"time"
+)
+
+const (
+	maxRequestBodyBytes = 32 << 10
+	maxNameLength       = 200
+	maxEmailLength      = 254
+	maxPhoneLength      = 64
+	maxPostalLength     = 500
+	maxSourceLength     = 100
+	maxListValues       = 20
+	maxListValueLength  = 100
 )
 
 // HandlerConfig configures the separate consent intake HTTP service.
@@ -51,6 +64,9 @@ func NewHandler(config HandlerConfig) http.Handler {
 }
 
 func (h *handler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+	writer.Header().Set("Cache-Control", "no-store")
+	writer.Header().Set("X-Content-Type-Options", "nosniff")
+	writer.Header().Set("Referrer-Policy", "no-referrer")
 	switch request.URL.Path {
 	case "/healthz":
 		if request.Method != http.MethodGet {
@@ -74,24 +90,42 @@ func (h *handler) createConsent(writer http.ResponseWriter, request *http.Reques
 		h.writeError(writer, http.StatusInternalServerError, "the consent store is not configured")
 		return
 	}
-	decoder := json.NewDecoder(http.MaxBytesReader(writer, request.Body, 32<<10))
+	decoder := json.NewDecoder(http.MaxBytesReader(writer, request.Body, maxRequestBodyBytes))
 	decoder.DisallowUnknownFields()
 	var body intakeRequest
 	if err := decoder.Decode(&body); err != nil {
 		h.writeError(writer, http.StatusBadRequest, "request body is invalid")
 		return
 	}
+	if err := decoder.Decode(&struct{}{}); err != io.EOF {
+		h.writeError(writer, http.StatusBadRequest, "request body must contain one JSON object")
+		return
+	}
 	name := strings.TrimSpace(body.Name)
-	if name == "" || len(name) > 200 {
-		h.writeError(writer, http.StatusBadRequest, "name is required and must be 200 characters or fewer")
+	if name == "" || len(name) > maxNameLength {
+		h.writeError(writer, http.StatusBadRequest, fmt.Sprintf("name is required and must be %d characters or fewer", maxNameLength))
 		return
 	}
 	if !body.ConsentAccepted {
 		h.writeError(writer, http.StatusBadRequest, "explicit consent is required")
 		return
 	}
-	if len(body.Purposes) > 20 || len(body.Channels) > 20 {
+	if len(body.Purposes) > maxListValues || len(body.Channels) > maxListValues {
 		h.writeError(writer, http.StatusBadRequest, "too many purpose or channel values")
+		return
+	}
+	if err := validateOptionalFields(body.Email, body.Phone, body.PostalAddress, body.Source); err != nil {
+		h.writeError(writer, http.StatusBadRequest, err.Error())
+		return
+	}
+	purposes, err := cleanStrings(body.Purposes)
+	if err != nil {
+		h.writeError(writer, http.StatusBadRequest, err.Error())
+		return
+	}
+	channels, err := cleanStrings(body.Channels)
+	if err != nil {
+		h.writeError(writer, http.StatusBadRequest, err.Error())
 		return
 	}
 	intake := Intake{
@@ -99,8 +133,8 @@ func (h *handler) createConsent(writer http.ResponseWriter, request *http.Reques
 		Email:           strings.TrimSpace(body.Email),
 		Phone:           strings.TrimSpace(body.Phone),
 		PostalAddress:   strings.TrimSpace(body.PostalAddress),
-		Purposes:        cleanStrings(body.Purposes),
-		Channels:        cleanStrings(body.Channels),
+		Purposes:        purposes,
+		Channels:        channels,
 		ConsentAccepted: true,
 		Source:          strings.TrimSpace(body.Source),
 	}
@@ -113,14 +147,36 @@ func (h *handler) createConsent(writer http.ResponseWriter, request *http.Reques
 	h.writeJSON(writer, http.StatusCreated, receipt)
 }
 
-func cleanStrings(values []string) []string {
+func validateOptionalFields(email, phone, postalAddress, source string) error {
+	limits := []struct {
+		name  string
+		value string
+		limit int
+	}{
+		{name: "email", value: email, limit: maxEmailLength},
+		{name: "phone", value: phone, limit: maxPhoneLength},
+		{name: "postalAddress", value: postalAddress, limit: maxPostalLength},
+		{name: "source", value: source, limit: maxSourceLength},
+	}
+	for _, field := range limits {
+		if len(strings.TrimSpace(field.value)) > field.limit {
+			return fmt.Errorf("%s must be %d characters or fewer", field.name, field.limit)
+		}
+	}
+	return nil
+}
+
+func cleanStrings(values []string) ([]string, error) {
 	cleaned := make([]string, 0, len(values))
 	for _, value := range values {
-		if trimmed := strings.TrimSpace(value); trimmed != "" && len(trimmed) <= 100 {
+		if trimmed := strings.TrimSpace(value); trimmed != "" {
+			if len(trimmed) > maxListValueLength {
+				return nil, fmt.Errorf("purpose and channel values must be %d characters or fewer", maxListValueLength)
+			}
 			cleaned = append(cleaned, trimmed)
 		}
 	}
-	return cleaned
+	return cleaned, nil
 }
 
 func (h *handler) writeError(writer http.ResponseWriter, status int, message string) {

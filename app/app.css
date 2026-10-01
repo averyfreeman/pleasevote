@@ -19,6 +19,15 @@ body {
   min-width: 320px;
 }
 
+:where(a, button, input, select, textarea, summary):focus-visible {
+  outline: 3px solid var(--color-primary);
+  outline-offset: 3px;
+}
+
+.print-only {
+  display: none;
+}
+
 button,
 a,
 input,
@@ -48,22 +57,41 @@ summary {
 }
 
 @media print {
-  header,
+  @page {
+    margin: 0.55in;
+  }
+
+  .site-header,
   footer,
   .no-print,
+  .skip-link,
   button,
   form {
     display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
   }
 
   body,
   main,
   section,
   article,
-  aside {
+  aside,
+  header,
+  .print-plan-header {
     background: white !important;
     color: black !important;
     box-shadow: none !important;
+  }
+
+  body * {
+    color: black !important;
+  }
+
+  .print-plan-header {
+    border: 1px solid black !important;
   }
 
   a {
@@ -71,8 +99,31 @@ summary {
     text-decoration: underline;
   }
 
+  details {
+    display: block !important;
+    break-inside: avoid;
+  }
+
+  details > summary {
+    list-style: none;
+  }
+
+  details > summary::marker,
+  details > summary::-webkit-details-marker {
+    display: none;
+  }
+
+  details > *:not(summary) {
+    display: block !important;
+  }
+
+  article {
+    break-inside: avoid;
+  }
+
   .print-break-before {
     break-before: page;
+    page-break-before: always;
   }
 }
 

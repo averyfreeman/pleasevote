@@ -1,7 +1,9 @@
 package civic
 
 import (
+	"bytes"
 	"context"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -60,8 +62,8 @@ func TestHTTPClientVoterInfoDecodesOfficialCivicFields(t *testing.T) {
 		t.Fatalf("VoterInfo: %v", err)
 	}
 
-	if response.Election.ID != "2000" {
-		t.Fatalf("election id = %q, want 2000", response.Election.ID)
+	if response.Status != "success" || response.Election.ID != "2000" {
+		t.Fatalf("status/election id = %q/%q, want success/2000", response.Status, response.Election.ID)
 	}
 	if len(response.PollingLocations) != 2 {
 		t.Fatalf("polling location count = %d, want 2", len(response.PollingLocations))
@@ -115,6 +117,79 @@ func TestHTTPClientListElectionsUsesTypedResponse(t *testing.T) {
 	}
 	if len(response.Elections) != 2 || response.Elections[0].ID != "3000" {
 		t.Fatalf("elections = %#v", response.Elections)
+	}
+}
+
+func TestHTTPClientDivisionEndpointsUseOfficialQueryShapes(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got := r.URL.Query().Get("key"); got != "civic-secret" {
+			t.Fatalf("key query = %q", got)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/civicinfo/v2/divisions":
+			if got := r.URL.Query().Get("query"); got != "Washington" {
+				t.Fatalf("division query = %q", got)
+			}
+			_, _ = w.Write([]byte(`{"kind":"civicinfo#divisionSearchResponse","results":[{"ocdId":"ocd-division/country:us/state:wa","name":"Washington","aliases":["ocd-division/country:us/state:wa/cd:1"]}]}`))
+		case "/civicinfo/v2/divisionsByAddress":
+			if got := r.URL.Query().Get("address"); got != "1 Main St, Seattle, WA" {
+				t.Fatalf("division address = %q", got)
+			}
+			_, _ = w.Write([]byte(`{"kind":"civicinfo#divisionsByAddressResponse","normalizedInput":{"line1":"1 Main St","state":"WA"},"divisions":{"ocd-division/country:us/state:wa":{"name":"Washington","alsoKnownAs":["ocd-division/country:us/state:wa/cd:1"]}}}`))
+		default:
+			t.Fatalf("unexpected path %q", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	client, err := NewHTTPClient(Config{BaseURL: server.URL + "/civicinfo/v2", APIKey: "civic-secret", HTTPClient: server.Client()})
+	if err != nil {
+		t.Fatalf("NewHTTPClient: %v", err)
+	}
+	search, err := client.Divisions(context.Background(), "Washington")
+	if err != nil || len(search.Results) != 1 || search.Results[0].OCDID != "ocd-division/country:us/state:wa" || len(search.Results[0].Aliases) != 1 {
+		t.Fatalf("Divisions = %#v, %v", search, err)
+	}
+	byAddress, err := client.DivisionsByAddress(context.Background(), "1 Main St, Seattle, WA")
+	if err != nil || byAddress.Divisions["ocd-division/country:us/state:wa"].Name != "Washington" || len(byAddress.Divisions["ocd-division/country:us/state:wa"].AlsoKnownAs) != 1 {
+		t.Fatalf("DivisionsByAddress = %#v, %v", byAddress, err)
+	}
+}
+
+func TestHTTPClientDebugLogsRedactAddressAndCredential(t *testing.T) {
+	var logs bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&logs, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write(fixtureBytes(t, "voterinfo-2000-columbus.json"))
+	}))
+	defer server.Close()
+
+	client, err := NewHTTPClient(Config{BaseURL: server.URL + "/civicinfo/v2", APIKey: "civic-secret", HTTPClient: server.Client(), Logger: logger})
+	if err != nil {
+		t.Fatalf("NewHTTPClient: %v", err)
+	}
+	if _, err := client.VoterInfo(context.Background(), "123 Private Address, Seattle, WA", nil); err != nil {
+		t.Fatalf("VoterInfo: %v", err)
+	}
+	if strings.Contains(logs.String(), "123 Private Address") || strings.Contains(logs.String(), "civic-secret") {
+		t.Fatalf("debug logs leaked sensitive data: %s", logs.String())
+	}
+	if !strings.Contains(logs.String(), "Civic request") || !strings.Contains(logs.String(), "Civic response") {
+		t.Fatalf("debug logs omitted provider boundary details: %s", logs.String())
+	}
+}
+
+func TestFixtureClientAcceptsAnyAddressForElection2000(t *testing.T) {
+	client := NewFixtureClient()
+	electionID := int64(2000)
+	response, err := client.VoterInfo(context.Background(), "an arbitrary address", &electionID)
+	if err != nil {
+		t.Fatalf("FixtureClient.VoterInfo: %v", err)
+	}
+	if response.Election.ID != "2000" || len(response.DropOffLocations) == 0 || response.EarlyVoteSites[0].VoterServices == "" {
+		t.Fatalf("fixture response lost useful fields: %#v", response)
 	}
 }
 

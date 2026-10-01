@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -20,6 +21,8 @@ const defaultBaseURL = "https://www.googleapis.com/civicinfo/v2"
 type Client interface {
 	ListElections(context.Context) (ElectionsResponse, error)
 	VoterInfo(context.Context, string, *int64) (VoterInfoResponse, error)
+	Divisions(context.Context, string) (DivisionSearchResponse, error)
+	DivisionsByAddress(context.Context, string) (DivisionsByAddressResponse, error)
 }
 
 // Config configures the Civic HTTP adapter. APIKey must come from the process
@@ -28,6 +31,7 @@ type Config struct {
 	BaseURL    string
 	APIKey     string
 	HTTPClient *http.Client
+	Logger     *slog.Logger
 }
 
 // HTTPClient is a credentialed, typed Civic Information API adapter.
@@ -35,6 +39,7 @@ type HTTPClient struct {
 	baseURL    *url.URL
 	apiKey     string
 	httpClient *http.Client
+	logger     *slog.Logger
 }
 
 // NewHTTPClient constructs a Civic adapter without making a network request.
@@ -54,7 +59,11 @@ func NewHTTPClient(config Config) (*HTTPClient, error) {
 	if client == nil {
 		client = http.DefaultClient
 	}
-	return &HTTPClient{baseURL: parsed, apiKey: config.APIKey, httpClient: client}, nil
+	logger := config.Logger
+	if logger == nil {
+		logger = slog.Default()
+	}
+	return &HTTPClient{baseURL: parsed, apiKey: config.APIKey, httpClient: client, logger: logger}, nil
 }
 
 // ListElections returns the elections advertised by Civic.
@@ -82,6 +91,33 @@ func (c *HTTPClient) VoterInfo(ctx context.Context, address string, electionID *
 	return response, nil
 }
 
+// Divisions searches the official Civic division index. The query is optional
+// and may be an OCD identifier or a human-readable division name.
+func (c *HTTPClient) Divisions(ctx context.Context, queryValue string) (DivisionSearchResponse, error) {
+	query := url.Values{}
+	if strings.TrimSpace(queryValue) != "" {
+		query.Set("query", queryValue)
+	}
+	var response DivisionSearchResponse
+	if err := c.getJSON(ctx, "divisions", query, &response); err != nil {
+		return DivisionSearchResponse{}, err
+	}
+	return response, nil
+}
+
+// DivisionsByAddress resolves the official Civic divisions for an address.
+func (c *HTTPClient) DivisionsByAddress(ctx context.Context, address string) (DivisionsByAddressResponse, error) {
+	if strings.TrimSpace(address) == "" {
+		return DivisionsByAddressResponse{}, &provider.Error{Kind: provider.KindInvalidRequest, Operation: "civic.divisionsByAddress", Message: "address is required"}
+	}
+	query := url.Values{"address": []string{address}}
+	var response DivisionsByAddressResponse
+	if err := c.getJSON(ctx, "divisionsByAddress", query, &response); err != nil {
+		return DivisionsByAddressResponse{}, err
+	}
+	return response, nil
+}
+
 func (c *HTTPClient) getJSON(ctx context.Context, path string, query url.Values, destination any) error {
 	requestURL := *c.baseURL
 	requestURL.Path = strings.TrimRight(c.baseURL.Path, "/") + "/" + strings.TrimLeft(path, "/")
@@ -99,11 +135,18 @@ func (c *HTTPClient) getJSON(ctx context.Context, path string, query url.Values,
 		return &provider.Error{Kind: provider.KindConfiguration, Operation: "civic.request", Message: "Civic request could not be created"}
 	}
 	request.Header.Set("Accept", "application/json")
+	logAttrs := []any{"operation", "civic." + path, "has_address", query.Get("address") != ""}
+	if electionID := query.Get("electionId"); electionID != "" {
+		logAttrs = append(logAttrs, "election_id", electionID)
+	}
+	c.logger.DebugContext(ctx, "Civic request", logAttrs...)
 	response, err := c.httpClient.Do(request)
 	if err != nil {
+		c.logger.DebugContext(ctx, "Civic request failed", "operation", "civic."+path, "network_error", true)
 		return &provider.Error{Kind: provider.KindNetwork, Operation: "civic.request", Retryable: true, Message: "Civic API request failed"}
 	}
 	defer response.Body.Close()
+	c.logger.DebugContext(ctx, "Civic response", "operation", "civic."+path, "status", response.StatusCode)
 
 	if response.StatusCode < http.StatusOK || response.StatusCode >= http.StatusMultipleChoices {
 		return civicHTTPError("civic."+path, response.StatusCode)

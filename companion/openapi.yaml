@@ -1,0 +1,131 @@
+openapi: 3.1.0
+info:
+  title: PleaseVote consent companion
+  version: v1
+  description: |
+    A separately deployed, intake-only consent boundary. Records are supplied
+    independently by a person for a stated purpose. This contract intentionally
+    has no voter lookup, election, contest, candidate, eligibility, or messaging
+    operation.
+servers:
+  - url: /
+paths:
+  /healthz:
+    get:
+      operationId: companionHealth
+      summary: Check companion process health
+      responses:
+        '200':
+          description: The process is ready to receive requests.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+  /v1/consents:
+    post:
+      operationId: createConsent
+      summary: Record an explicit consent intake
+      description: |
+        Stores independently supplied contact details and communication
+        preferences after explicit consent. The service returns a receipt only;
+        it does not return the submitted contact data or expose management APIs.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConsentRequest'
+      responses:
+        '201':
+          description: Consent recorded.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                const: no-store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConsentReceipt'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/ServerError'
+components:
+  responses:
+    BadRequest:
+      description: The body is invalid, too large, incomplete, or missing explicit consent.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorBody'
+    ServerError:
+      description: The companion could not persist the consent record.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorBody'
+  schemas:
+    HealthResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          const: ok
+    ConsentRequest:
+      type: object
+      additionalProperties: false
+      required: [name, consentAccepted]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        email:
+          type: string
+          maxLength: 254
+        phone:
+          type: string
+          maxLength: 64
+        postalAddress:
+          type: string
+          maxLength: 500
+        purposes:
+          type: array
+          maxItems: 20
+          items:
+            type: string
+            maxLength: 100
+        channels:
+          type: array
+          maxItems: 20
+          items:
+            type: string
+            maxLength: 100
+        consentAccepted:
+          type: boolean
+          const: true
+        source:
+          type: string
+          maxLength: 100
+    ConsentReceipt:
+      type: object
+      required: [id, status, consentedAt]
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+          const: active
+        consentedAt:
+          type: string
+          format: date-time
+    ErrorBody:
+      type: object
+      required: [error]
+      additionalProperties: false
+      properties:
+        error:
+          type: string

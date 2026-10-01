@@ -1,7 +1,9 @@
 package geocoding
 
 import (
+	"bytes"
 	"context"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -93,5 +95,29 @@ func TestHTTPClientRejectsSuccessfulResultWithoutCoordinates(t *testing.T) {
 	_, err = client.Geocode(context.Background(), "211 Garrett Place")
 	if err == nil || !provider.IsKind(err, provider.KindInvalidResponse) {
 		t.Fatalf("Geocode error = %v, want invalid-response error", err)
+	}
+}
+
+func TestHTTPClientDebugLogsRedactAddressAndCredential(t *testing.T) {
+	var logs bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&logs, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write(geocodingFixtureBytes(t, "columbus.json"))
+	}))
+	defer server.Close()
+
+	client, err := NewHTTPClient(Config{BaseURL: server.URL + "/maps/api/geocode/json", APIKey: "maps-secret", HTTPClient: server.Client(), Logger: logger})
+	if err != nil {
+		t.Fatalf("NewHTTPClient: %v", err)
+	}
+	if _, err := client.Geocode(context.Background(), "secret residential address"); err != nil {
+		t.Fatalf("Geocode: %v", err)
+	}
+	if strings.Contains(logs.String(), "secret residential address") || strings.Contains(logs.String(), "maps-secret") {
+		t.Fatalf("debug logs leaked sensitive data: %s", logs.String())
+	}
+	if !strings.Contains(logs.String(), "Geocoding request") || !strings.Contains(logs.String(), "Geocoding response") {
+		t.Fatalf("debug logs omitted provider boundary details: %s", logs.String())
 	}
 }

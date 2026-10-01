@@ -27,6 +27,7 @@ export default defineConfig({
           items: [
             { label: 'API and data model', slug: 'reference' },
             { label: 'Endpoint reference', slug: 'api-endpoints' },
+            { label: 'Generated references', slug: 'generated-reference' },
             { label: 'Architecture', slug: 'architecture' },
           ],
         },

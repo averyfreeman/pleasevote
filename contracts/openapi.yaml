@@ -6,7 +6,7 @@ info:
     Credential-free voter information assembled from the Google Civic Information
     API and Google Geocoding API. The browser sends an address; provider keys
     remain server-side. A lookup response is explicitly labelled live or
-    test-fallback.
+    test-fixture.
 servers:
   - url: /
 paths:
@@ -44,8 +44,8 @@ paths:
       description: |
         Geocodes the address, selects the nearest upcoming non-test election
         with useful Civic data, and returns the complete Civic voter-information
-        tree. If no live election returns useful data, the service queries Civic
-        election 2000 and sets mode to test-fallback with a warning.
+        tree. In debug mode, if no live election returns useful data, the service
+        uses the local Civic election 2000 fixture and sets mode to test-fixture.
       parameters:
         - name: address
           in: query
@@ -118,6 +118,50 @@ paths:
           $ref: '#/components/responses/BadRequest'
         default:
           $ref: '#/components/responses/ErrorResponse'
+  /api/v1/divisions:
+    get:
+      operationId: searchDivisions
+      summary: Search Civic divisions
+      description: Search the official Civic division index by optional OCD identifier or name.
+      parameters:
+        - name: query
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 500
+      responses:
+        '200':
+          description: Official Civic division search results.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DivisionsResponse'
+        default:
+          $ref: '#/components/responses/ErrorResponse'
+  /api/v1/divisionsByAddress:
+    get:
+      operationId: divisionsByAddress
+      summary: Resolve Civic divisions for an address
+      parameters:
+        - name: address
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 500
+      responses:
+        '200':
+          description: Official Civic divisions keyed by OCD identifier.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DivisionsByAddressResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        default:
+          $ref: '#/components/responses/ErrorResponse'
   /api/docs:
     get:
       operationId: humanApiDocs
@@ -163,7 +207,13 @@ components:
           description: The Civic endpoint family used for the request.
         fallbackUsed:
           type: boolean
-          description: True when the deterministic VIP test election was used.
+          description: True when the deterministic local VIP test fixture was used.
+        dataSource:
+          type: string
+          enum: [live, test-fixture]
+        providerStatus:
+          type: string
+          description: Civic status preserved even when useful fields accompany a non-success status.
     Point:
       type: object
       required: [latitude, longitude]
@@ -406,7 +456,7 @@ components:
         electionRulesUrl:
           type: string
           format: uri
-        voter_services:
+        voterServices:
           type: array
           items:
             type: string
@@ -444,10 +494,30 @@ components:
         electionRulesUrl:
           type: string
           format: uri
+        electionNoticeText:
+          type: string
+        electionNoticeUrl:
+          type: string
+          format: uri
+        absenteeVotingInfoUrl:
+          type: string
+          format: uri
+        voterServices:
+          type: array
+          items:
+            type: string
+        hoursOfOperation:
+          type: string
         jurisdiction:
           type: string
         correspondenceAddress:
           $ref: '#/components/schemas/Address'
+        physicalAddress:
+          $ref: '#/components/schemas/Address'
+        electionOfficials:
+          type: array
+          items:
+            $ref: '#/components/schemas/ElectionOfficial'
         sources:
           type: array
           items:
@@ -479,10 +549,10 @@ components:
           $ref: '#/components/schemas/Election'
         mode:
           type: string
-          enum: [live, test-fallback]
+          enum: [live, test-fixture]
         warning:
           type: string
-          description: Present when mode is test-fallback and warns that election 2000 is not current election data.
+          description: Present for partial provider data or test-fixture data and explains what needs confirmation.
         pollingLocations:
           type: array
           items:
@@ -515,7 +585,7 @@ components:
             $ref: '#/components/schemas/Source'
         mailOnly:
           type: boolean
-          description: Civic mailOnly flag for precincts that vote only by mail, possibly with ballot drop-off.
+          description: Informational Civic flag. It never hides election-day, early-vote, or ballot drop-off records.
         retrieval:
           $ref: '#/components/schemas/Retrieval'
     ElectionsResponse:
@@ -528,6 +598,61 @@ components:
             $ref: '#/components/schemas/Election'
         retrieval:
           $ref: '#/components/schemas/Retrieval'
+    Division:
+      type: object
+      required: [ocdId, name]
+      properties:
+        ocdId:
+          type: string
+        name:
+          type: string
+        aliases:
+          type: array
+          items:
+            type: string
+          description: Alternate OCD identifiers returned by Civic division search.
+        alsoKnownAs:
+          type: array
+          items:
+            type: string
+          description: Alternate OCD identifiers returned for a division-by-address result.
+    DivisionsResponse:
+      type: object
+      required: [results, retrieval]
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Division'
+        kind:
+          type: string
+        retrieval:
+          $ref: '#/components/schemas/Retrieval'
+    DivisionsByAddressResponse:
+      type: object
+      required: [divisions, normalizedInput, retrieval]
+      properties:
+        divisions:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/AddressDivision'
+        normalizedInput:
+          $ref: '#/components/schemas/Address'
+        kind:
+          type: string
+        retrieval:
+          $ref: '#/components/schemas/Retrieval'
+    AddressDivision:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        alsoKnownAs:
+          type: array
+          items:
+            type: string
+          description: Alternate OCD identifiers returned for a division-by-address result.
     PublicError:
       type: object
       required: [code, message, retryable]
@@ -541,8 +666,11 @@ components:
           type: boolean
     ErrorResponseBody:
       type: object
-      required: [error, retrieval]
+      required: [ok, error, retrieval]
       properties:
+        ok:
+          type: boolean
+          const: false
         error:
           $ref: '#/components/schemas/PublicError'
         retrieval:

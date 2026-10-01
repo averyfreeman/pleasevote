@@ -1,0 +1,64 @@
+name: Verify and package
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Repository verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 12.6.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.21.0
+          cache: pnpm
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.24.0
+          cache: true
+
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install the Playwright browser
+        run: pnpm exec playwright install --with-deps chromium webkit
+
+      - name: Run the repository gate
+        run: bash scripts/verify.sh
+
+  containers:
+    name: Build production images
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: verify
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Build the provider service image
+        run: docker build --pull --file Dockerfile --tag pleasevote:ci .
+
+      - name: Build the consent companion image
+        run: docker build --pull --file companion/Dockerfile --tag pleasevote-companion:ci .

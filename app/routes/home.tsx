@@ -72,7 +72,7 @@ export default function Home() {
                 <CalendarDays aria-hidden="true" className="mt-0.5 shrink-0 text-secondary" />
                 <div>
                   <h2 className="font-extrabold">What you’ll find here</h2>
-                  <p className="mt-1 text-sm leading-6 text-base-content/70">Election information in one place. We don’t register you, endorse candidates, or cast a ballot.</p>
+                  <p className="mt-1 text-sm leading-6 text-base-content/70">Clear dates, places, hours, contests, and official links in one place—so you can make a plan with confidence.</p>
                 </div>
               </div>
             </div>

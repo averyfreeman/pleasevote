@@ -75,6 +75,28 @@ type ElectionsResponse struct {
 	Kind      string     `json:"kind,omitempty"`
 }
 
+// Division is an Open Civic Data jurisdiction returned by the divisions API.
+type Division struct {
+	OCDID       string   `json:"ocdId,omitempty"`
+	Name        string   `json:"name"`
+	Aliases     []string `json:"aliases,omitempty"`
+	AlsoKnownAs []string `json:"alsoKnownAs,omitempty"`
+}
+
+// DivisionSearchResponse is the official /divisions response shape.
+type DivisionSearchResponse struct {
+	Results []Division `json:"results"`
+	Kind    string     `json:"kind,omitempty"`
+}
+
+// DivisionsByAddressResponse is the official /divisionsByAddress response
+// shape, where the map key is the Open Civic Data division identifier.
+type DivisionsByAddressResponse struct {
+	Divisions       map[string]Division `json:"divisions"`
+	NormalizedInput Address             `json:"normalizedInput"`
+	Kind            string              `json:"kind,omitempty"`
+}
+
 // Address is the Civic address resource used for input and locations.
 type Address struct {
 	LocationName string   `json:"locationName,omitempty"`
@@ -211,6 +233,8 @@ type StateInformation struct {
 // VoterInfoResponse is the Civic voterInfoQuery response. The fields mirror
 // the official API names so the adapter remains lossless for the frontend.
 type VoterInfoResponse struct {
+	// Status is optional because recorded fixtures from older Civic responses omit it.
+	Status           string             `json:"status,omitempty"`
 	Election         Election           `json:"election"`
 	OtherElections   []Election         `json:"otherElections,omitempty"`
 	NormalizedInput  Address            `json:"normalizedInput"`
@@ -224,11 +248,14 @@ type VoterInfoResponse struct {
 }
 
 // HasUserInformation reports whether a response contains data useful to a
-// voter beyond the election metadata itself.
+// voter beyond the election metadata itself. Civic may return useful fields
+// alongside a non-success status, so status is preserved but never used to
+// discard otherwise meaningful records.
 func (response VoterInfoResponse) HasUserInformation() bool {
 	return len(response.PollingLocations) > 0 ||
 		len(response.EarlyVoteSites) > 0 ||
 		len(response.DropOffLocations) > 0 ||
 		len(response.Contests) > 0 ||
+		len(response.State) > 0 ||
 		response.MailOnly
 }

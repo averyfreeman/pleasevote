@@ -13,7 +13,7 @@ The browser receives a stable response from Go instead of a raw Google payload. 
 | `normalizedAddress` | The geocoder/provider's accepted address; not proof of residency or eligibility. |
 | `origin` | Server-geocoded coordinates used for distance calculations. |
 | `election` | Election id, name, date, and Civic division. |
-| `mode` | `live` or `test-fallback`. |
+| `mode` | `live` or `test-fixture`; the fixture is explicit debug sample data. |
 | `warning` | Required visitor-facing explanation when test data or uncertainty applies. |
 | `pollingLocations` | Civic `pollingLocations[]`, presented as election-day locations rather than assignments. |
 | `earlyVoteSites` | Civic `earlyVoteSites[]` with the provider's hours text. |
@@ -22,7 +22,7 @@ The browser receives a stable response from Go instead of a raw Google payload. 
 | `administration` | State/local election office identity, links, and correspondence information. |
 | `otherElections` | Other election choices returned for the address. |
 | `sources` | Preserved provider attribution. |
-| `retrieval` | Endpoint, fallback flag, request election, and safe retrieval timestamp. |
+| `retrieval` | Endpoint, fixture flag, provider status, request election, data source, and safe retrieval timestamp. |
 
 ## Location semantics
 
@@ -30,4 +30,4 @@ The browser receives a stable response from Go instead of a raw Google payload. 
 
 ## TSDoc
 
-The source code is the authoritative detailed reference. Run `pnpm run docs:typecheck` to generate Markdown TypeDoc output for the public TypeScript domain and API modules.
+The source code is the authoritative detailed reference. Run `pnpm run docs:typecheck` to generate Markdown TypeDoc output for the public TypeScript domain and API modules, then browse the [generated references](../generated-reference/).

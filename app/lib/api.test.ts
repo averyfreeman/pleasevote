@@ -42,10 +42,10 @@ describe("browser API client", () => {
       normalizedAddress: { formatted: "Normalized address", line1: "1 Main St", addressLine: ["1 Main St", 4], city: "Testville", state: "TS", zip: "00000" },
       origin: { latitude: 0, longitude: 0 },
       election: { id: "2000", name: "VIP Test Election", electionDay: "2031-12-06", ocdDivisionId: "ocd-1" },
-      mode: "test-fallback",
+      mode: "test-fixture",
       warning: "Test only",
       pollingLocations: [
-        { id: "poll-1", address: { locationName: "Named", line1: "1 Main St", line2: "Suite 2", line3: "Floor 3", city: "Testville", state: "TS", zip: "00000", addressLine: ["1 Main St"] }, pollingHours: "8-8", notes: "Accessible", startDate: "2031-12-06", endDate: "2031-12-06", latitude: 0, longitude: 0, distanceMiles: 1, sources: [{ name: "VIP", official: true }, { official: false }] },
+        { id: "poll-1", address: { locationName: "Named", line1: "1 Main St", line2: "Suite 2", line3: "Floor 3", city: "Testville", state: "TS", zip: "00000", addressLine: ["1 Main St"] }, pollingHours: "8-8", voterServices: "Accessible voting", notes: "Accessible", startDate: "2031-12-06", endDate: "2031-12-06", latitude: 0, longitude: 0, distanceMiles: 1, sources: [{ name: "VIP", official: true }, { official: false }] },
         { name: "Legacy name", address: {}, point: { latitude: 1, longitude: 2 }, sources: [] },
       ],
       earlyVoteSites: [{ address: { line1: "Early" }, point: { latitude: 3, longitude: 4 }, sources: [{ name: "Office", official: false }] }],
@@ -55,25 +55,27 @@ describe("browser API client", () => {
         { referendumTitle: "Question", referendumText: "Question text", referendumUrl: "https://example.test/q", sources: [] },
       ],
       administration: [
-        { name: "State", electionAdministrationBody: { name: "Office", electionInfoUrl: "https://example.test/info", electionRegistrationUrl: "https://example.test/register", electionRegistrationConfirmationUrl: "https://example.test/confirm", votingLocationFinderUrl: "https://example.test/find", ballotInfoUrl: "https://example.test/ballot", electionRulesUrl: "https://example.test/rules", correspondenceAddress: { line1: "Office address" } }, local_jurisdiction: { name: "County", sources: [{ name: "County", official: true }] }, sources: [{ name: "State", official: true }] },
+        { name: "State", electionAdministrationBody: { name: "Office", electionInfoUrl: "https://example.test/info", electionRegistrationUrl: "https://example.test/register", electionRegistrationConfirmationUrl: "https://example.test/confirm", votingLocationFinderUrl: "https://example.test/find", ballotInfoUrl: "https://example.test/ballot", electionRulesUrl: "https://example.test/rules", voterServices: ["registration"], hoursOfOperation: "Weekdays", physicalAddress: { line1: "Physical office" }, electionOfficials: [{ name: "Director", title: "Clerk" }], correspondenceAddress: { line1: "Office address" } }, local_jurisdiction: { name: "County", sources: [{ name: "County", official: true }] }, sources: [{ name: "State", official: true }] },
         { name: "Direct", electionInfoUrl: "https://example.test/direct", correspondenceAddress: {}, sources: [] },
       ],
       otherElections: [{ id: "3000", name: "Other", electionDay: "2032-01-01" }, {}],
       sources: [{ name: "VIP", official: true }],
-      retrieval: { apiVersion: "v1", requestId: "req", retrievedAt: "2031-01-01T00:00:00Z", provider: "google", electionId: "2000" },
+      retrieval: { apiVersion: "v1", requestId: "req", retrievedAt: "2031-01-01T00:00:00Z", provider: "google", electionId: "2000", dataSource: "test-fixture", providerStatus: "partial" },
       mailOnly: true,
     };
     vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify(payload), { status: 200 }));
 
     const result = await fetchVoterInfo("Submitted address", "2000");
-    expect(result).toMatchObject({ mode: "test-fallback", mailOnly: true, origin: { latitude: 0, longitude: 0 }, retrieval: { fallbackUsed: true, requestId: "req" } });
-    expect(result.pollingLocations[0]).toMatchObject({ id: "poll-1", kind: "polling", point: { latitude: 0, longitude: 0 }, distanceMiles: 1 });
+    expect(result).toMatchObject({ mode: "test-fixture", mailOnly: true, origin: { latitude: 0, longitude: 0 }, retrieval: { fallbackUsed: true, requestId: "req", dataSource: "test-fixture", providerStatus: "partial" } });
+    expect(result.pollingLocations[0]).toMatchObject({ id: "poll-1", kind: "polling", voterServices: "Accessible voting", point: { latitude: 0, longitude: 0 }, distanceMiles: 1 });
     expect(result.pollingLocations[1].address.locationName).toBe("Legacy name");
     expect(result.earlyVoteSites[0].kind).toBe("early-vote");
     expect(result.dropOffLocations[0].kind).toBe("drop-off");
     expect(result.contests[0].candidates[0]?.candidateUrl).toContain("ada");
     expect(result.contests[1].referendumSubtitle).toBe("Question text");
     expect(result.administration[0].electionRegistrationUrl).toContain("register");
+    expect(result.administration[0].voterServices).toEqual(["registration"]);
+    expect(result.administration[0].electionOfficials?.[0]?.name).toBe("Director");
     expect(result.administration[1].name).toBe("Direct");
     expect(result.otherElections[1]?.name).toBe("Election");
   });
@@ -89,6 +91,7 @@ describe("browser API client", () => {
     const result = await fetchDiscovery("Other place", "2000");
     expect(result.jurisdictionComparison).toBe("different-broad-jurisdiction");
     expect(result.warning).toBe("Verify eligibility.");
+    expect(result.mode).toBe("live");
   });
 
   it("rejects a successful response with an invalid geocoded origin", async () => {

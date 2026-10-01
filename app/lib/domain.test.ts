@@ -20,7 +20,7 @@ function response(overrides: Partial<LookupResponse> = {}): LookupResponse {
     normalizedAddress: { line1: "1 Main St", city: "Testville", state: "TS", zip: "00000" },
     origin: { latitude: 0, longitude: 0 },
     election: { id: "2000", name: "VIP Test Election", electionDay: "2031-12-06" },
-    mode: "test-fallback",
+    mode: "test-fixture",
     warning: "Fixture only",
     pollingLocations: [],
     earlyVoteSites: [],
@@ -37,6 +37,8 @@ function response(overrides: Partial<LookupResponse> = {}): LookupResponse {
 describe("normalizeRadius", () => {
   it.each([
     [undefined, DEFAULT_RADIUS_MILES],
+    [null, DEFAULT_RADIUS_MILES],
+    ["", DEFAULT_RADIUS_MILES],
     ["not-a-number", DEFAULT_RADIUS_MILES],
     [1, 5],
     [5, 5],
@@ -55,6 +57,10 @@ describe("calculateDistance", () => {
 
   it("calculates a known one-degree longitude distance near the equator", () => {
     expect(calculateDistance({ latitude: 0, longitude: 0 }, { latitude: 0, longitude: 1 })).toBeCloseTo(69.09, 1);
+  });
+
+  it("keeps antipodal distances finite", () => {
+    expect(calculateDistance({ latitude: 0, longitude: 0 }, { latitude: 0, longitude: 180 })).toBeCloseTo(12_436.8, 0);
   });
 
   it("rejects invalid coordinates", () => {
@@ -82,6 +88,15 @@ describe("classifyLocations", () => {
     const results = classifyLocations([location("equator", { latitude: 0, longitude: 0 })], { latitude: 0, longitude: 0 }, 5);
     expect(results.inRadius).toHaveLength(1);
     expect(results.missingCoordinates).toHaveLength(0);
+  });
+
+  it("orders equal-distance records by stable id", () => {
+    const results = classifyLocations([
+      location("z", { latitude: 0, longitude: 0 }),
+      location("a", { latitude: 0, longitude: 0 }),
+    ], { latitude: 0, longitude: 0 }, 5);
+
+    expect(results.inRadius.map((item) => item.id)).toEqual(["a", "z"]);
   });
 });
 

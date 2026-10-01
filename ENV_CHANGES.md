@@ -1,5 +1,30 @@
 # Environment changes
 
+## 2026-10-01 — Civic debugging and provider preservation
+
+- Added `pnpm run api`, `api:debug`, `api:test`, `api:race`, `api:vet`, and `api:verify` as the memorable backend workflow.
+- Added the `--debug` and `--log-level` API flags; debug mode embeds Civic election 2000 sample data and defaults to `DEBUG` logs.
+- Added `PLEASEVOTE_CIVIC_BASE_URL`, `CIVIC_BASE_URL`, `PLEASEVOTE_GEOCODING_BASE_URL`, and `GEOCODING_BASE_URL` for provider stubs/deployment while retaining the existing address and static-directory variables.
+- No credential values or raw addresses were added to source, fixtures, logs, screenshots, or documentation.
+
+## 2026-09-30 — companion deployment and release packaging
+
+- Hardened the intake-only companion's JSON boundary, response headers, validation, and graceful shutdown.
+- Added the companion OpenAPI contract, PostgreSQL constraint documentation, non-root container images, and a local separated compose stack.
+- Added CI for the Node 24/pnpm 12 and Go verification gate plus provider/companion image builds.
+- Extended the verification entrypoint to require the companion and packaging artifacts and to build the documentation site.
+
+## 2026-09-30 — accessible visual and reference build
+
+- Made `pnpm run docs:build` regenerate TypeDoc before building the Astro/Starlight site.
+- Added generated-reference navigation for TypeDoc and the OpenAPI boundary.
+- No runtime credentials, provider behavior, or deployment settings changed.
+
+## 2026-09-30 — toolchain verification
+
+- Pinned pnpm 12.6.0 and Go 1.24.0 in `mise.toml` alongside Node 24.21.0.
+- The verification entrypoint now rejects unsupported Node or pnpm majors and runs Go tests with the race detector.
+
 ## 2026-09-30 — copy and credential documentation pass
 
 - Added `pnpm run copy:check` to keep public documentation free of internal credential-loading details.
@@ -18,4 +43,4 @@
 
 ## Credential handling
 
-The Go service requires two server-side credentials: one for the [Google Maps Platform Geocoding API](https://developers.google.com/maps/documentation/geocoding) and one for the [Google Civic Information API](https://developers.google.com/civic-information). Neither belongs in the browser bundle, fixtures, test output, logs, or repository.
+Normal live-provider mode requires two server-side credentials: one for the [Google Maps Platform Geocoding API](https://developers.google.com/maps/documentation/geocoding) and one for the [Google Civic Information API](https://developers.google.com/civic-information). Debug fixture mode can omit the Civic credential, but still needs geocoding for the submitted address. Neither credential belongs in the browser bundle, fixtures, test output, logs, or repository.

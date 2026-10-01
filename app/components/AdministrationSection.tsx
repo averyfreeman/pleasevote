@@ -8,6 +8,8 @@ const links: readonly [keyof AdministrationInfo, string][] = [
   ["votingLocationFinderUrl", "Official location finder"],
   ["ballotInfoUrl", "Sample ballot information"],
   ["electionRulesUrl", "Voting rules"],
+  ["electionNoticeUrl", "Election notice"],
+  ["absenteeVotingInfoUrl", "Absentee voting information"],
 ];
 
 /** Present official election-administration references without hiding provenance. */
@@ -24,6 +26,9 @@ export default function AdministrationSection({ records }: { readonly records: r
             <article key={`${record.name || "administration"}-${index}`} className="rounded-2xl border border-base-300 bg-base-100 p-5 shadow-sm">
               <h3 className="font-extrabold">{record.name || "Election administration"}</h3>
               {record.jurisdiction ? <p className="mt-1 text-sm text-base-content/65">{record.jurisdiction}</p> : null}
+              {record.electionNoticeText ? <p className="mt-3 rounded-xl bg-info/10 p-3 text-sm leading-6">{record.electionNoticeText}</p> : null}
+              {record.voterServices?.length ? <p className="mt-3 text-sm leading-6"><strong>Services:</strong> {record.voterServices.join(", ")}</p> : null}
+              {record.hoursOfOperation ? <p className="mt-2 text-sm leading-6"><strong>Office hours:</strong> {record.hoursOfOperation}</p> : null}
               <div className="mt-4 flex flex-col items-start gap-2">
                 {links.map(([field, label]) => {
                   const url = record[field];

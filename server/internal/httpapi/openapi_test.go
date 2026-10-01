@@ -21,6 +21,8 @@ func TestOpenAPISourceDocumentsFrontendLookupShape(t *testing.T) {
 	document := string(contents)
 	for _, required := range []string{
 		"/api/v1/lookup:",
+		"/api/v1/divisions:",
+		"/api/v1/divisionsByAddress:",
 		"address:",
 		"normalizedAddress:",
 		"origin:",
@@ -33,7 +35,9 @@ func TestOpenAPISourceDocumentsFrontendLookupShape(t *testing.T) {
 		"sources:",
 		"retrieval:",
 		"mode:",
-		"test-fallback",
+		"test-fixture",
+		"voterServices:",
+		"providerStatus:",
 		"eligible to vote on election day",
 	} {
 		if !strings.Contains(document, required) {

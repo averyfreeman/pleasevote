@@ -65,6 +65,8 @@ export interface VotingLocation {
   readonly address: CivicAddress;
   /** Human-readable provider hours text; preserve line breaks. */
   readonly pollingHours?: string;
+  /** Provider description of services available at this location. */
+  readonly voterServices?: string;
   /** Provider notes about eligibility, access, or the location. */
   readonly notes?: string;
   /** Optional beginning of the provider's availability window. */
@@ -145,8 +147,24 @@ export interface AdministrationInfo {
   readonly ballotInfoUrl?: string;
   /** Official rules/eligibility page. */
   readonly electionRulesUrl?: string;
+  /** Provider notice text and URL, when available. */
+  readonly electionNoticeText?: string;
+  readonly electionNoticeUrl?: string;
+  /** Absentee/early-voting guidance, when available. */
+  readonly absenteeVotingInfoUrl?: string;
+  /** Services and office hours supplied by the election administrator. */
+  readonly voterServices?: readonly string[];
+  readonly hoursOfOperation?: string;
   /** Correspondence address for the administration body. */
   readonly correspondenceAddress?: CivicAddress;
+  readonly physicalAddress?: CivicAddress;
+  readonly electionOfficials?: readonly {
+    readonly name?: string;
+    readonly title?: string;
+    readonly officePhoneNumber?: string;
+    readonly faxNumber?: string;
+    readonly emailAddress?: string;
+  }[];
   /** Jurisdiction label associated with the administration body. */
   readonly jurisdiction?: string;
   /** Provider source attribution. */
@@ -160,9 +178,9 @@ export interface NormalizedAddress extends CivicAddress {
 }
 
 /** Which election source produced the result. */
-export type LookupMode = "live" | "test-fallback";
+export type LookupMode = "live" | "test-fixture";
 
-/** Provenance and fallback information shown to visitors and operators. */
+/** Provenance and fixture information shown to visitors and operators. */
 export interface RetrievalMetadata {
   /** Civic endpoint request used by the backend. */
   readonly civicEndpoint: string;
@@ -180,6 +198,10 @@ export interface RetrievalMetadata {
   readonly provider?: string;
   /** Provider election id, when returned by the service. */
   readonly electionId?: string;
+  /** Whether records came from the live provider or local fixture. */
+  readonly dataSource?: "live" | "test-fixture";
+  /** Civic status preserved even when useful fields accompany it. */
+  readonly providerStatus?: string;
 }
 
 /** Complete normalized voter-information response for one submitted address. */
@@ -212,7 +234,7 @@ export interface LookupResponse {
   readonly mailOnly?: boolean;
   /** Sources contributing records to this response. */
   readonly sources: readonly SourceAttribution[];
-  /** Auditable provider/fallback metadata, never including secrets. */
+  /** Auditable provider/fixture metadata, never including secrets. */
   readonly retrieval: RetrievalMetadata;
 }
 
@@ -228,6 +250,8 @@ export interface DiscoveryResponse {
   readonly jurisdictionComparison: "same-broad-jurisdiction" | "different-broad-jurisdiction" | "unknown";
   /** Warning that discovery does not establish voter eligibility. */
   readonly warning: string;
+  /** Live data or deterministic VIP fixture data used for this place. */
+  readonly mode: LookupMode;
   /** Voting-related locations returned for the alternate place. */
   readonly pollingLocations: readonly VotingLocation[];
   /** Early-vote locations returned for the alternate place. */

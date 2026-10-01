@@ -1,6 +1,6 @@
 import { useId, useState } from "react";
 import { ExternalLink, MapPin, Navigation } from "lucide-react";
-import type { LocationResults } from "~/lib/domain";
+import { isValidGeoPoint, type LocationResults } from "~/lib/domain";
 import type { VotingLocation } from "~/lib/types";
 
 interface LocationSectionProps {
@@ -16,18 +16,18 @@ interface LocationSectionProps {
 
 /** Join address lines without manufacturing an address when the provider omitted it. */
 export function formatAddress(address: VotingLocation["address"]): string {
+  const streetLines = [address.line1, address.line2, address.line3].filter(Boolean);
+  const providerLines = address.addressLine?.filter((line) => line.trim() !== "") ?? [];
   return [
     address.locationName,
-    address.line1,
-    address.line2,
-    address.line3,
+    ...(streetLines.length ? streetLines : providerLines),
     [address.city, address.state, address.zip].filter(Boolean).join(", ").replace(", ,", ","),
   ].filter(Boolean).join(" · ");
 }
 
 /** Make an external directions link from the provider address or coordinates. */
 export function directionsUrl(location: VotingLocation): string | undefined {
-  const destination = location.point
+  const destination = isValidGeoPoint(location.point)
     ? `${location.point.latitude},${location.point.longitude}`
     : formatAddress(location.address);
   return destination ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}` : undefined;
@@ -59,10 +59,11 @@ function LocationCard({ location }: { readonly location: VotingLocation }) {
           <p className="mt-1 whitespace-pre-line text-sm font-semibold leading-6">{location.pollingHours}</p>
         </div>
       ) : <p className="mt-4 text-sm italic text-base-content/60">Hours were not provided.</p>}
+      {location.voterServices ? <div className="mt-4 rounded-xl border border-secondary/25 bg-secondary/10 p-4"><h4 className="text-xs font-black uppercase tracking-wider text-base-content/60">Services listed by the provider</h4><p className="mt-1 text-sm font-semibold leading-6">{location.voterServices}</p></div> : null}
       {location.notes ? <p className="mt-3 text-sm leading-6 text-base-content/70">{location.notes}</p> : null}
       <div className="mt-4 flex flex-wrap gap-2">
         {url ? <a className="btn btn-primary btn-sm" href={url} target="_blank" rel="noreferrer"><Navigation aria-hidden="true" size={16} />Directions<span className="sr-only"> (opens in a new tab)</span></a> : null}
-        {location.address.line1 ? <a className="btn btn-ghost btn-sm" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location.address.line1)}`} target="_blank" rel="noreferrer"><ExternalLink aria-hidden="true" size={15} />View place<span className="sr-only"> (opens in a new tab)</span></a> : null}
+        {address ? <a className="btn btn-ghost btn-sm" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`} target="_blank" rel="noreferrer"><ExternalLink aria-hidden="true" size={15} />View place<span className="sr-only"> (opens in a new tab)</span></a> : null}
       </div>
       <p className="mt-3 text-xs text-base-content/55">This place may offer the service listed above. It does not confirm personal eligibility or an assigned location.</p>
     </article>
@@ -87,20 +88,20 @@ export default function LocationSection({ title, description, results, emptyMess
         <div className="mt-4 grid gap-4 lg:grid-cols-2">
           {visible.map((location) => <LocationCard key={location.id} location={location} />)}
         </div>
-      ) : <div className="mt-4 rounded-2xl border border-dashed border-base-300 bg-base-100 p-6 text-sm text-base-content/70">{emptyMessage}</div>}
+      ) : <div className="mt-4 rounded-2xl border border-dashed border-base-300 bg-base-100 p-6 text-sm text-base-content/70"><p>{emptyMessage}</p><p className="mt-3">Not finding what you need? <a className="link link-primary font-bold" href="https://vote.gov" target="_blank" rel="noreferrer">Check vote.gov<span className="sr-only"> (opens in a new tab)</span></a>.</p></div>}
       {results.inRadius.length > 10 ? (
         <button className="btn btn-outline btn-sm mt-4" type="button" onClick={() => setShowAll((current) => !current)}>
           {showAll ? "Show nearest 10" : `Show all ${results.inRadius.length} locations`}
         </button>
       ) : null}
       {results.missingCoordinates.length ? (
-        <details className="mt-4 rounded-2xl border border-warning/35 bg-warning/10 p-4">
-          <summary className="cursor-pointer font-bold">{results.missingCoordinates.length} place(s) without coordinates</summary>
-          <p className="mt-2 text-sm leading-6 text-base-content/70">These places are kept here instead of hidden. Check the address and hours with the election office before relying on them.</p>
+        <div className="mt-4 rounded-2xl border border-warning/35 bg-warning/10 p-4" aria-label="Locations without coordinates">
+          <h3 className="font-bold">{results.missingCoordinates.length} place(s) without coordinates</h3>
+          <p className="mt-2 text-sm leading-6 text-base-content/70">These records stay visible for review instead of being filtered out. Check the address and hours with the election office before relying on them.</p>
           <div className="mt-3 grid gap-3">
             {results.missingCoordinates.map((location) => <LocationCard key={location.id} location={location} />)}
           </div>
-        </details>
+        </div>
       ) : null}
       {results.outsideRadius.length ? (
         <p className="mt-3 text-xs text-base-content/55">{results.outsideRadius.length} more place(s) are outside the selected distance.</p>

@@ -120,6 +120,7 @@ function normalizeLocation(value: unknown, kind: VotingLocation["kind"], index: 
     kind,
     address,
     pollingHours: stringValue(raw.pollingHours),
+    voterServices: stringValue(raw.voterServices),
     notes: stringValue(raw.notes),
     startDate: stringValue(raw.startDate),
     endDate: stringValue(raw.endDate),
@@ -189,7 +190,23 @@ function normalizeAdministration(value: unknown): LookupResponse["administration
     votingLocationFinderUrl: stringValue(body.votingLocationFinderUrl),
     ballotInfoUrl: stringValue(body.ballotInfoUrl),
     electionRulesUrl: stringValue(body.electionRulesUrl),
+    electionNoticeText: stringValue(body.electionNoticeText),
+    electionNoticeUrl: stringValue(body.electionNoticeUrl),
+    absenteeVotingInfoUrl: stringValue(body.absenteeVotingInfoUrl),
+    voterServices: Array.isArray(body.voterServices) ? body.voterServices.filter((item): item is string => typeof item === "string") : [],
+    hoursOfOperation: stringValue(body.hoursOfOperation),
     correspondenceAddress,
+    physicalAddress: Object.keys(asRecord(body.physicalAddress)).length ? asRecord(body.physicalAddress) as CivicAddress : undefined,
+    electionOfficials: Array.isArray(body.electionOfficials) ? body.electionOfficials.map((item) => {
+      const official = asRecord(item);
+      return {
+        name: stringValue(official.name),
+        title: stringValue(official.title),
+        officePhoneNumber: stringValue(official.officePhoneNumber),
+        faxNumber: stringValue(official.faxNumber),
+        emailAddress: stringValue(official.emailAddress),
+      };
+    }) : [],
     jurisdiction: stringValue(local.name),
     sources: [...normalizeSources(raw.sources), ...normalizeSources(local.sources)],
   };
@@ -211,7 +228,7 @@ function normalizeLookupResponse(value: unknown, submittedAddress: string): Look
   const longitude = numberValue(rawOrigin.longitude);
   if (latitude === undefined || longitude === undefined) throw new Error("The voter-information service returned no valid origin coordinates.");
   const retrieval = asRecord(raw.retrieval);
-  const mode = raw.mode === "test-fallback" ? "test-fallback" : "live";
+  const mode = raw.mode === "test-fixture" ? "test-fixture" : "live";
   const normalizedAddress: NormalizedAddress = { ...rawNormalized as CivicAddress, formatted: stringValue(rawNormalized.formatted) };
   return {
     address: stringValue(raw.address) ?? submittedAddress,
@@ -233,12 +250,14 @@ function normalizeLookupResponse(value: unknown, submittedAddress: string): Look
     sources: normalizeSources(raw.sources),
     retrieval: {
       civicEndpoint: "voterinfo",
-      fallbackUsed: mode === "test-fallback",
+      fallbackUsed: mode === "test-fixture",
       retrievedAt: stringValue(retrieval.retrievedAt) ?? new Date().toISOString(),
       apiVersion: stringValue(retrieval.apiVersion),
       requestId: stringValue(retrieval.requestId),
       provider: stringValue(retrieval.provider),
       electionId: stringValue(retrieval.electionId) ?? election.id,
+      dataSource: retrieval.dataSource === "test-fixture" || mode === "test-fixture" ? "test-fixture" : "live",
+      providerStatus: stringValue(retrieval.providerStatus),
     },
   };
 }
@@ -291,6 +310,7 @@ export function fetchDiscovery(
       origin: normalized.origin,
       jurisdictionComparison: comparison,
       warning: stringValue(raw.warning) ?? "This discovery lookup does not establish voter eligibility at this place.",
+      mode: normalized.mode,
       pollingLocations: normalized.pollingLocations,
       earlyVoteSites: normalized.earlyVoteSites,
       dropOffLocations: normalized.dropOffLocations,

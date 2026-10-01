@@ -8,6 +8,12 @@
     "node": ">=24.0.0 <25"
   },
   "scripts": {
+    "api": "go run ./server/cmd/pleasevote-api",
+    "api:debug": "go run ./server/cmd/pleasevote-api --debug --log-level=DEBUG",
+    "api:test": "go test ./server/... && pnpm run contract:check",
+    "api:race": "go test -race ./server/...",
+    "api:vet": "go vet ./server/...",
+    "api:verify": "pnpm run api:test && pnpm run api:race && pnpm run api:vet",
     "build": "react-router build",
     "dev": "react-router dev",
     "preview": "vite preview",
@@ -20,7 +26,7 @@
     "copy:check": "node scripts/check-copy.mjs",
     "contract:check": "node scripts/check-openapi.mjs",
     "docs:typecheck": "typedoc --options typedoc.json",
-    "docs:build": "pnpm --dir docs-site build",
+    "docs:build": "pnpm run docs:typecheck && pnpm --dir docs-site build",
     "verify": "bash scripts/verify.sh"
   },
   "dependencies": {

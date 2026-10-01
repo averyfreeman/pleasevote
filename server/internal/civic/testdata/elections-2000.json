@@ -1,0 +1,11 @@
+{
+  "kind": "civicinfo#elections",
+  "elections": [
+    {
+      "id": "2000",
+      "name": "VIP Test Election",
+      "electionDay": "2031-12-06",
+      "ocdDivisionId": "ocd-division/country:us"
+    }
+  ]
+}

@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 )
@@ -55,15 +56,19 @@ func (s *SQLStore) CreateConsent(ctx context.Context, intake Intake, now time.Ti
 	if s == nil || s.DB == nil {
 		return Receipt{}, errors.New("companion database is not configured")
 	}
+	intake, err := normalizeIntake(intake)
+	if err != nil {
+		return Receipt{}, err
+	}
 	id, err := newID("ci")
 	if err != nil {
 		return Receipt{}, fmt.Errorf("create consent id: %w", err)
 	}
-	purposes, err := json.Marshal(intake.Purposes)
+	purposes, err := json.Marshal(nonNilStrings(intake.Purposes))
 	if err != nil {
 		return Receipt{}, fmt.Errorf("encode consent purposes: %w", err)
 	}
-	channels, err := json.Marshal(intake.Channels)
+	channels, err := json.Marshal(nonNilStrings(intake.Channels))
 	if err != nil {
 		return Receipt{}, fmt.Errorf("encode consent channels: %w", err)
 	}
@@ -95,6 +100,10 @@ func (s *MemoryStore) CreateConsent(_ context.Context, intake Intake, now time.T
 	if s == nil {
 		return Receipt{}, errors.New("memory store is not configured")
 	}
+	intake, err := normalizeIntake(intake)
+	if err != nil {
+		return Receipt{}, err
+	}
 	id, err := newID("test")
 	if err != nil {
 		return Receipt{}, err
@@ -107,6 +116,41 @@ func (s *MemoryStore) CreateConsent(_ context.Context, intake Intake, now time.T
 	}{Intake: intake, Receipt: receipt})
 	s.mu.Unlock()
 	return receipt, nil
+}
+
+func normalizeIntake(intake Intake) (Intake, error) {
+	intake.Name = strings.TrimSpace(intake.Name)
+	if intake.Name == "" || len(intake.Name) > maxNameLength {
+		return Intake{}, fmt.Errorf("name is required and must be %d characters or fewer", maxNameLength)
+	}
+	if !intake.ConsentAccepted {
+		return Intake{}, errors.New("explicit consent is required")
+	}
+	if len(intake.Purposes) > maxListValues || len(intake.Channels) > maxListValues {
+		return Intake{}, errors.New("too many purpose or channel values")
+	}
+	intake.Email = strings.TrimSpace(intake.Email)
+	intake.Phone = strings.TrimSpace(intake.Phone)
+	intake.PostalAddress = strings.TrimSpace(intake.PostalAddress)
+	intake.Source = strings.TrimSpace(intake.Source)
+	if err := validateOptionalFields(intake.Email, intake.Phone, intake.PostalAddress, intake.Source); err != nil {
+		return Intake{}, err
+	}
+	var err error
+	if intake.Purposes, err = cleanStrings(intake.Purposes); err != nil {
+		return Intake{}, err
+	}
+	if intake.Channels, err = cleanStrings(intake.Channels); err != nil {
+		return Intake{}, err
+	}
+	return intake, nil
+}
+
+func nonNilStrings(values []string) []string {
+	if values == nil {
+		return []string{}
+	}
+	return values
 }
 
 func newID(prefix string) (string, error) {

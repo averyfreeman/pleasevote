@@ -1,0 +1,69 @@
+name: pleasevote
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      GOOGLE_CIVIC_API_KEY: ${GOOGLE_CIVIC_API_KEY:?set the Civic provider credential}
+      GMAPS_API_KEY: ${GMAPS_API_KEY:?set the Maps provider credential}
+      PLEASEVOTE_ADDR: ":8080"
+      PLEASEVOTE_STATIC_DIR: /app/build/client
+    ports:
+      - "8080:8080"
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    networks:
+      - web
+
+  companion:
+    build:
+      context: .
+      dockerfile: companion/Dockerfile
+    environment:
+      PLEASEVOTE_COMPANION_DATABASE_URL: postgres://pleasevote_companion:${COMPANION_DB_PASSWORD:?set the companion database password}@postgres:5432/pleasevote_companion?sslmode=disable
+      PLEASEVOTE_COMPANION_ADDR: ":8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    expose:
+      - "8081"
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    networks:
+      - companion
+
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: pleasevote_companion
+      POSTGRES_USER: pleasevote_companion
+      POSTGRES_PASSWORD: ${COMPANION_DB_PASSWORD:?set the companion database password}
+    volumes:
+      - companion-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pleasevote_companion -d pleasevote_companion"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - companion
+
+volumes:
+  companion-postgres:
+
+networks:
+  web:
+  companion:
+    internal: true

@@ -23,7 +23,7 @@ export function Layout({ children }: { children: ReactNode }) {
       </head>
       <body className="min-h-screen bg-base-200 text-base-content antialiased">
         <a className="skip-link" href="#main-content">Skip to main content</a>
-        <header className="border-b border-base-300 bg-base-100/95 shadow-sm backdrop-blur">
+        <header className="site-header border-b border-base-300 bg-base-100/95 shadow-sm backdrop-blur">
           <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
             <a href="/" className="flex items-center gap-3 rounded-xl focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-primary">
               <span aria-hidden="true" className="grid size-10 place-items-center rounded-2xl bg-primary text-xl text-primary-content shadow-md">✓</span>
@@ -40,6 +40,7 @@ export function Layout({ children }: { children: ReactNode }) {
           <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-8 text-sm text-base-content/65 sm:px-6 lg:px-8">
             <p className="font-semibold text-base-content">PleaseVote is an information service, not a voting service.</p>
             <p>Check with your election office for final eligibility, hours, and rules.</p>
+            <p><a className="link link-primary font-bold" href="https://vote.gov" target="_blank" rel="noreferrer">Official voter information: vote.gov<span className="sr-only"> (opens in a new tab)</span></a></p>
           </div>
         </footer>
         <ScrollRestoration />

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { AlertTriangle, ArrowLeft, CalendarDays, FileDown, Info, ListChecks, MapPinned } from "lucide-react";
 import { Link, useLoaderData, useSearchParams } from "react-router";
+import type { ShouldRevalidateFunctionArgs } from "react-router";
 import type { Route } from "./+types/voterinfo";
 
 import AdministrationSection from "~/components/AdministrationSection";
@@ -29,6 +30,14 @@ export async function clientLoader({ request }: Route.ClientLoaderArgs) {
   }
 }
 
+/** Reuse the loaded provider response when only the local display radius changes. */
+export function shouldRevalidate({ currentUrl, nextUrl, defaultShouldRevalidate }: ShouldRevalidateFunctionArgs): boolean {
+  const sameLookup = currentUrl.pathname === nextUrl.pathname &&
+    currentUrl.searchParams.get("address") === nextUrl.searchParams.get("address") &&
+    currentUrl.searchParams.get("electionId") === nextUrl.searchParams.get("electionId");
+  return sameLookup ? false : defaultShouldRevalidate;
+}
+
 function displayAddress(address: { readonly line1?: string; readonly city?: string; readonly state?: string; readonly zip?: string; readonly formatted?: string }): string {
   return address.formatted || [address.line1, address.city, address.state, address.zip].filter(Boolean).join(", ");
 }
@@ -48,14 +57,17 @@ export default function VoterInfo() {
     return (
       <main id="main-content" className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
         <div className="alert alert-error items-start"><AlertTriangle aria-hidden="true" className="mt-0.5" /><div><h1 className="font-black">We could not load voter information</h1><p className="mt-1">{loaderData.error}</p></div></div>
+        <p className="mt-6 text-sm leading-6 text-base-content/70">You can also start with the official voter-information hub:</p>
+        <a className="link link-primary mt-1 inline-block font-bold" href="https://vote.gov" target="_blank" rel="noreferrer">Visit vote.gov<span className="sr-only"> (opens in a new tab)</span></a>
         <Link to="/" className="btn btn-primary mt-6"><ArrowLeft aria-hidden="true" size={18} />Try another address</Link>
       </main>
     );
   }
 
   const plan = buildVotingPlan(data, radius);
-  const normalized = displayAddress(data.normalizedAddress) || address || data.address;
-  const fallback = data.mode === "test-fallback";
+  const fixture = data.mode === "test-fixture";
+  const normalized = fixture ? data.address : displayAddress(data.normalizedAddress) || address || data.address;
+  const hasLocations = data.pollingLocations.length > 0 || data.earlyVoteSites.length > 0 || data.dropOffLocations.length > 0;
 
   function applyRadius(event: React.FormEvent<HTMLFormElement>): void {
     event.preventDefault();
@@ -71,12 +83,13 @@ export default function VoterInfo() {
         <button type="button" className="btn btn-outline btn-sm" onClick={() => window.print()}><FileDown aria-hidden="true" size={17} />Print / save as PDF</button>
       </div>
 
-      <header className="mt-6 rounded-3xl border border-primary/20 bg-base-100 p-6 shadow-xl sm:p-8">
+      <header className="print-plan-header mt-6 rounded-3xl border border-primary/20 bg-base-100 p-6 shadow-xl sm:p-8">
         <div className="flex flex-wrap items-start justify-between gap-6">
           <div>
+            <p className="print-only text-xs font-black uppercase tracking-[0.18em]">PleaseVote · voter information</p>
             <p className="text-sm font-black uppercase tracking-[0.18em] text-primary">Election details for this address</p>
             <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-5xl">{data.election.name}</h1>
-            <p className="mt-3 flex items-start gap-2 text-base-content/75"><MapPinned aria-hidden="true" className="mt-0.5 shrink-0 text-primary" size={19} /><span>{normalized}</span></p>
+            <p className="mt-3 flex items-start gap-2 text-base-content/75"><MapPinned aria-hidden="true" className="mt-0.5 shrink-0 text-primary" size={19} /><span><span className="block text-xs font-bold uppercase tracking-wide text-base-content/55">{fixture ? "Submitted address · sample records below are not address-specific" : "Address"}</span>{normalized}</span></p>
           </div>
           <div className="rounded-2xl bg-primary/10 p-5 text-left sm:min-w-56">
             <p className="text-xs font-black uppercase tracking-wider text-base-content/60">Election day</p>
@@ -84,14 +97,15 @@ export default function VoterInfo() {
             <p className="mt-2 text-sm text-base-content/65">Use this as a guide, then check the official details.</p>
           </div>
         </div>
-        {fallback ? <div className="alert alert-warning mt-6 items-start"><AlertTriangle aria-hidden="true" className="mt-0.5" /><div><h2 className="font-black">Test data — not a current election</h2><p className="mt-1 text-sm">Live voter information was unavailable, so Civic’s test election is shown for development. Don’t use these details to plan a real trip.</p></div></div> : null}
+        {fixture ? <div className="alert alert-warning mt-6 items-start"><AlertTriangle aria-hidden="true" className="mt-0.5" /><div><h2 className="font-black">Sample fixture — not a current election</h2><p className="mt-1 text-sm">{data.warning || "Civic’s election 2000 fixture is shown for debugging. These sample records are not matched to the submitted address."}</p></div></div> : null}
+        {!fixture && data.warning ? <div className="alert alert-info mt-6 items-start"><Info aria-hidden="true" className="mt-0.5" /><div><h2 className="font-black">Some provider details need confirmation</h2><p className="mt-1 text-sm">{data.warning}</p></div></div> : null}
         <div className="mt-6 grid gap-3 border-t border-base-300 pt-5 sm:grid-cols-4">
           <SummaryStat label="Election-day locations" value={data.pollingLocations.length} />
           <SummaryStat label="Early-vote sites" value={data.earlyVoteSites.length} />
           <SummaryStat label="Drop-off locations" value={data.dropOffLocations.length} />
           <SummaryStat label="Contests / questions" value={data.contests.length} />
         </div>
-        {data.mailOnly ? <p className="mt-5 rounded-xl bg-info/10 p-3 text-sm font-semibold text-base-content/75">This election is marked mail-only. Check the official links for return instructions and deadlines.</p> : null}
+        {data.mailOnly ? <p className="mt-5 rounded-xl bg-info/10 p-3 text-sm font-semibold text-base-content/75">Civic marks this election as mail-only. Drop-off, election-day, and service records remain visible below because the provider may still publish them. Confirm which options apply with the official election office.</p> : null}
       </header>
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
@@ -113,15 +127,16 @@ export default function VoterInfo() {
           </section>
 
           <div id="locations" className="space-y-10">
-            <LocationSection title="Election-day locations" description="Civic lists these as possible places to vote on election day. It does not identify one assigned location. Check eligibility and hours before you go." results={plan.pollingLocations} emptyMessage="No election-day locations with coordinates were found within this distance. Check the official location finder and review records without coordinates." />
+            <LocationSection title="Election-day locations" description="Civic lists these as possible places to vote on election day, including services some jurisdictions provide for people who need in-person help. It does not identify one assigned location. Check eligibility and hours before you go." results={plan.pollingLocations} emptyMessage="No election-day locations are within this distance. Records without coordinates remain visible for review." />
             <LocationSection title="Early-vote sites" description="Hours come from the source. Rules may vary by jurisdiction." results={plan.earlyVoteSites} emptyMessage="No early-vote sites were found within this distance." />
             <LocationSection title="Ballot drop-off locations" description="Check that your ballot and jurisdiction allow drop-off here." results={plan.dropOffLocations} emptyMessage="No ballot drop-off locations were found within this distance." />
           </div>
+          {!hasLocations ? <div className="rounded-2xl border border-secondary/30 bg-secondary/10 p-5 text-sm leading-6"><p className="font-bold">Not finding what you need here?</p><p className="mt-1">Use the official voter-information hub at <a className="link link-primary font-bold" href="https://vote.gov" target="_blank" rel="noreferrer">vote.gov<span className="sr-only"> (opens in a new tab)</span></a>, then confirm details with your election office.</p></div> : null}
 
           <ContestSection contests={plan.contests} />
           <AdministrationSection records={plan.administration} />
           {data.otherElections.length ? <OtherElections address={data.address} elections={data.otherElections} /> : null}
-          <DiscoveryPanel electionId={data.election.id} />
+          <DiscoveryPanel electionId={data.election.id} radiusMiles={plan.radiusMiles} />
         </div>
 
         <aside className="no-print h-fit space-y-4 lg:sticky lg:top-6" aria-label="Plan navigation and data notes">
@@ -136,6 +151,7 @@ export default function VoterInfo() {
           <div className="rounded-2xl border border-base-300 bg-base-100 p-5 text-sm shadow-sm">
             <h2 className="font-black">About this information</h2>
             <p className="mt-2 leading-6 text-base-content/70">Retrieved {new Date(data.retrieval.retrievedAt).toLocaleString()}. Source labels are shown with each section.</p>
+            {data.retrieval.providerStatus ? <p className="mt-3 leading-6 text-base-content/70">Civic status: <strong>{data.retrieval.providerStatus}</strong>. Useful records are shown, but confirm anything that matters.</p> : null}
             {data.otherElections.length ? <p className="mt-3 leading-6 text-base-content/70">There are {data.otherElections.length} other election options for this address.</p> : null}
             <p className="mt-3 flex items-start gap-2 leading-6 text-base-content/70"><ListChecks aria-hidden="true" className="mt-0.5 shrink-0 text-primary" size={17} />Check the official links before you go.</p>
           </div>

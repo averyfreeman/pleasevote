@@ -4,6 +4,9 @@ package voterinfo
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"log/slog"
 	"math"
 	"sort"
 	"strconv"
@@ -18,30 +21,37 @@ import (
 // TestElectionID is the stable Civic VIP fixture election documented for API testing.
 const TestElectionID int64 = 2000
 
-// Mode identifies whether the result came from a current election or the
-// explicitly labelled Civic test election fallback.
+// Mode identifies whether the result came from a live provider or the
+// explicitly labelled local Civic test fixture.
 type Mode string
 
 const (
 	// ModeLive is data selected from an upcoming non-test election.
 	ModeLive Mode = "live"
-	// ModeTestFallback is data selected from Civic's VIP election 2000.
-	ModeTestFallback Mode = "test-fallback"
+	// ModeTestFixture is deterministic local Civic sample data selected only in
+	// debug mode.
+	ModeTestFixture Mode = "test-fixture"
 )
 
 // Config supplies the external provider seams and clock used by Service.
 type Config struct {
 	Civic    civic.Client
+	Fixture  civic.Client
 	Geocoder geocoding.Client
 	Now      func() time.Time
+	Debug    bool
+	Logger   *slog.Logger
 }
 
 // Service is the election-selection and geocoding application boundary.
 type Service struct {
 	civic          civic.Client
+	fixture        civic.Client
 	geocoder       geocoding.Client
 	now            func() time.Time
 	testElectionID int64
+	debug          bool
+	logger         *slog.Logger
 }
 
 // LookupResult is a lossless, frontend-ready combination of geocoded origin
@@ -61,6 +71,8 @@ type LookupResult struct {
 	OtherElections    []civic.Election
 	Sources           []civic.Source
 	MailOnly          bool
+	ProviderStatus    string
+	DataSource        string
 }
 
 // NewService creates the selection service without making provider calls.
@@ -69,37 +81,112 @@ func NewService(config Config) *Service {
 	if now == nil {
 		now = time.Now
 	}
+	logger := config.Logger
+	if logger == nil {
+		logger = slog.Default()
+	}
 	return &Service{
 		civic:          config.Civic,
+		fixture:        config.Fixture,
 		geocoder:       config.Geocoder,
 		now:            now,
 		testElectionID: TestElectionID,
+		debug:          config.Debug,
+		logger:         logger,
 	}
 }
 
 // Elections returns the currently advertised Civic election list.
 func (s *Service) Elections(ctx context.Context) (civic.ElectionsResponse, error) {
-	if s == nil || s.civic == nil {
-		return civic.ElectionsResponse{}, &provider.Error{Kind: provider.KindConfiguration, Operation: "civic.elections", Message: "Civic provider is not configured"}
+	response, _, err := s.elections(ctx)
+	return response, err
+}
+
+// ElectionsWithSource returns the advertised elections and whether the list
+// itself came from the local debug fixture.
+func (s *Service) ElectionsWithSource(ctx context.Context) (civic.ElectionsResponse, Mode, error) {
+	return s.elections(ctx)
+}
+
+// Divisions proxies the official Civic division search through the same
+// server-side provider boundary as voter information.
+func (s *Service) Divisions(ctx context.Context, query string) (civic.DivisionSearchResponse, error) {
+	client, err := s.operationClient("civic.divisions")
+	if err != nil {
+		return civic.DivisionSearchResponse{}, err
 	}
-	return s.civic.ListElections(ctx)
+	return client.Divisions(ctx, query)
+}
+
+// DivisionsByAddress proxies the official Civic address division lookup.
+func (s *Service) DivisionsByAddress(ctx context.Context, address string) (civic.DivisionsByAddressResponse, error) {
+	client, err := s.operationClient("civic.divisionsByAddress")
+	if err != nil {
+		return civic.DivisionsByAddressResponse{}, err
+	}
+	return client.DivisionsByAddress(ctx, address)
+}
+
+func (s *Service) operationClient(operation string) (civic.Client, error) {
+	if s != nil && s.civic != nil {
+		return s.civic, nil
+	}
+	if s != nil && s.debug && s.fixture != nil {
+		return s.fixture, nil
+	}
+	return nil, &provider.Error{Kind: provider.KindConfiguration, Operation: operation, Message: "Civic provider is not configured"}
+}
+
+func (s *Service) elections(ctx context.Context) (civic.ElectionsResponse, Mode, error) {
+	if s == nil || s.civic == nil {
+		if s != nil && s.debug && s.fixture != nil {
+			response, err := s.fixture.ListElections(ctx)
+			if err == nil {
+				return ensureTestElection(response), ModeTestFixture, nil
+			}
+		}
+		return civic.ElectionsResponse{}, ModeLive, &provider.Error{Kind: provider.KindConfiguration, Operation: "civic.elections", Message: "Civic provider is not configured"}
+	}
+	response, err := s.civic.ListElections(ctx)
+	if err != nil {
+		if s.debug && s.fixture != nil {
+			fixtureResponse, fixtureErr := s.fixture.ListElections(ctx)
+			if fixtureErr == nil {
+				s.logger.DebugContext(ctx, "using Civic fixture election list", "operation", "civic.elections", "reason", "live_list_failed")
+				return ensureTestElection(fixtureResponse), ModeTestFixture, nil
+			}
+		}
+		return civic.ElectionsResponse{}, ModeLive, err
+	}
+	if s.debug {
+		if len(response.Elections) == 0 && s.fixture != nil {
+			fixtureResponse, fixtureErr := s.fixture.ListElections(ctx)
+			if fixtureErr == nil {
+				s.logger.DebugContext(ctx, "using Civic fixture election list", "operation", "civic.elections", "reason", "live_list_empty")
+				return ensureTestElection(fixtureResponse), ModeTestFixture, nil
+			}
+		}
+		response = ensureTestElection(response)
+	}
+	return response, ModeLive, nil
 }
 
 // Lookup geocodes an address and selects the nearest upcoming live election.
-// When no live election returns usable voter data, it makes one explicit query
-// for Civic's documented VIP election 2000 and marks the result as a test
-// fallback. An explicit election ID is never silently replaced.
+// In debug mode, a missing usable live result is served by the local Civic
+// election 2000 fixture. Normal mode never substitutes local fixture data.
+// An explicit election ID is never silently replaced.
 func (s *Service) Lookup(ctx context.Context, address string, requestedElectionID *int64) (LookupResult, error) {
 	trimmedAddress := strings.TrimSpace(address)
 	if trimmedAddress == "" {
 		return LookupResult{}, &provider.Error{Kind: provider.KindInvalidRequest, Operation: "lookup", Message: "address is required"}
 	}
-	if s == nil || s.civic == nil || s.geocoder == nil {
+	if s == nil || s.geocoder == nil || (s.civic == nil && !(s.debug && s.fixture != nil)) {
 		return LookupResult{}, &provider.Error{Kind: provider.KindConfiguration, Operation: "lookup", Message: "lookup providers are not configured"}
 	}
 	if requestedElectionID != nil && *requestedElectionID <= 0 {
 		return LookupResult{}, &provider.Error{Kind: provider.KindInvalidRequest, Operation: "lookup", Message: "electionId must be positive"}
 	}
+	s.logger.DebugContext(ctx, "starting Civic lookup", "operation", "lookup", "address_fingerprint", addressFingerprint(trimmedAddress), "explicit_election", requestedElectionID != nil)
 
 	origin, err := s.geocoder.Geocode(ctx, trimmedAddress)
 	if err != nil {
@@ -110,6 +197,12 @@ func (s *Service) Lookup(ctx context.Context, address string, requestedElectionI
 	}
 
 	if requestedElectionID != nil {
+		if *requestedElectionID == s.testElectionID && s.debug && s.fixture != nil {
+			return s.lookupFixture(ctx, trimmedAddress, origin)
+		}
+		if s.civic == nil {
+			return LookupResult{}, noVoterInformationError("civic.voterinfo")
+		}
 		response, lookupErr := s.civic.VoterInfo(ctx, trimmedAddress, requestedElectionID)
 		if lookupErr != nil {
 			return LookupResult{}, lookupErr
@@ -117,12 +210,11 @@ func (s *Service) Lookup(ctx context.Context, address string, requestedElectionI
 		if err := validateElectionResponse(response, strconv.FormatInt(*requestedElectionID, 10)); err != nil {
 			return LookupResult{}, err
 		}
+		if !response.HasUserInformation() {
+			return LookupResult{}, noVoterInformationError("civic.voterinfo")
+		}
 		mode := ModeLive
 		warning := ""
-		if *requestedElectionID == s.testElectionID {
-			mode = ModeTestFallback
-			warning = testElectionWarning
-		}
 		return project(trimmedAddress, origin, response, mode, warning), nil
 	}
 
@@ -151,23 +243,26 @@ func (s *Service) Lookup(ctx context.Context, address string, requestedElectionI
 		return project(trimmedAddress, origin, response, ModeLive, ""), nil
 	}
 
-	testID := s.testElectionID
-	testResponse, err := s.civic.VoterInfo(ctx, trimmedAddress, &testID)
-	if err != nil {
-		return LookupResult{}, err
+	if s.debug && s.fixture != nil {
+		return s.lookupFixture(ctx, trimmedAddress, origin)
 	}
-	if err := validateElectionResponse(testResponse, strconv.FormatInt(s.testElectionID, 10)); err != nil {
-		return LookupResult{}, err
-	}
-	if !testResponse.HasUserInformation() {
-		return LookupResult{}, &provider.Error{Kind: provider.KindNoData, Operation: "civic.voterinfo.test-fallback", Message: "VIP test election returned no voter information"}
-	}
-	return project(trimmedAddress, origin, testResponse, ModeTestFallback, testElectionWarning), nil
+	return LookupResult{}, noVoterInformationError("civic.voterinfo")
 }
 
-const testElectionWarning = "This is Civic's VIP Test Election (2000) data, not a current election. Confirm the current election and official details before making a voting plan."
+const testElectionWarning = "Sample data from Civic's VIP Test Election (2000) is shown for debugging. These locations, contests, and hours are not matched to the submitted address or a current election. Confirm current details with the official election administrator."
+
+func noVoterInformationError(operation string) error {
+	return &provider.Error{Kind: provider.KindNoData, Operation: operation, Message: "Civic returned no voter information"}
+}
 
 func project(address string, origin geocoding.Result, response civic.VoterInfoResponse, mode Mode, warning string) LookupResult {
+	dataSource := "live"
+	if mode == ModeTestFixture {
+		dataSource = "test-fixture"
+	}
+	if warning == "" && response.Status != "" && !strings.EqualFold(strings.TrimSpace(response.Status), "success") {
+		warning = "Civic returned useful records with a partial provider status. Review the official election links before relying on these details."
+	}
 	return LookupResult{
 		Address:           address,
 		NormalizedAddress: response.NormalizedInput,
@@ -183,7 +278,40 @@ func project(address string, origin geocoding.Result, response civic.VoterInfoRe
 		OtherElections:    nonNilElections(response.OtherElections),
 		Sources:           collectSources(response),
 		MailOnly:          response.MailOnly,
+		ProviderStatus:    response.Status,
+		DataSource:        dataSource,
 	}
+}
+
+func (s *Service) lookupFixture(ctx context.Context, address string, origin geocoding.Result) (LookupResult, error) {
+	testID := s.testElectionID
+	response, err := s.fixture.VoterInfo(ctx, address, &testID)
+	if err != nil {
+		return LookupResult{}, err
+	}
+	if err := validateElectionResponse(response, strconv.FormatInt(s.testElectionID, 10)); err != nil {
+		return LookupResult{}, err
+	}
+	if !response.HasUserInformation() {
+		return LookupResult{}, noVoterInformationError("civic.fixture.voterinfo")
+	}
+	s.logger.DebugContext(ctx, "using Civic test fixture", "operation", "civic.voterinfo", "election_id", s.testElectionID, "address_fingerprint", addressFingerprint(address))
+	return project(address, origin, response, ModeTestFixture, testElectionWarning), nil
+}
+
+func ensureTestElection(response civic.ElectionsResponse) civic.ElectionsResponse {
+	for _, election := range response.Elections {
+		if election.ID == strconv.FormatInt(TestElectionID, 10) {
+			return response
+		}
+	}
+	response.Elections = append(response.Elections, civic.Election{ID: "2000", Name: "VIP Test Election", ElectionDay: "2031-12-06", OCDDivisionID: "ocd-division/country:us"})
+	return response
+}
+
+func addressFingerprint(address string) string {
+	digest := sha256.Sum256([]byte(address))
+	return hex.EncodeToString(digest[:])[:12]
 }
 
 func validateElectionResponse(response civic.VoterInfoResponse, expectedID string) error {

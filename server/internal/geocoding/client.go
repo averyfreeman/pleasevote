@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
@@ -25,6 +26,7 @@ type Config struct {
 	BaseURL    string
 	APIKey     string
 	HTTPClient *http.Client
+	Logger     *slog.Logger
 }
 
 // HTTPClient is a credentialed Google Geocoding API adapter.
@@ -32,6 +34,7 @@ type HTTPClient struct {
 	baseURL    *url.URL
 	apiKey     string
 	httpClient *http.Client
+	logger     *slog.Logger
 }
 
 type apiResponse struct {
@@ -65,7 +68,11 @@ func NewHTTPClient(config Config) (*HTTPClient, error) {
 	if client == nil {
 		client = http.DefaultClient
 	}
-	return &HTTPClient{baseURL: parsed, apiKey: config.APIKey, httpClient: client}, nil
+	logger := config.Logger
+	if logger == nil {
+		logger = slog.Default()
+	}
+	return &HTTPClient{baseURL: parsed, apiKey: config.APIKey, httpClient: client, logger: logger}, nil
 }
 
 // Geocode resolves an address to its first provider result.
@@ -83,11 +90,14 @@ func (c *HTTPClient) Geocode(ctx context.Context, address string) (Result, error
 		return Result{}, &provider.Error{Kind: provider.KindConfiguration, Operation: "geocoding.request", Message: "geocoding request could not be created"}
 	}
 	request.Header.Set("Accept", "application/json")
+	c.logger.DebugContext(ctx, "Geocoding request", "operation", "geocoding.lookup", "has_address", true)
 	response, err := c.httpClient.Do(request)
 	if err != nil {
+		c.logger.DebugContext(ctx, "Geocoding request failed", "operation", "geocoding.lookup", "network_error", true)
 		return Result{}, &provider.Error{Kind: provider.KindNetwork, Operation: "geocoding.request", Retryable: true, Message: "geocoding request failed"}
 	}
 	defer response.Body.Close()
+	c.logger.DebugContext(ctx, "Geocoding response", "operation", "geocoding.lookup", "status", response.StatusCode)
 	if response.StatusCode < http.StatusOK || response.StatusCode >= http.StatusMultipleChoices {
 		return Result{}, geocodingHTTPError(response.StatusCode)
 	}

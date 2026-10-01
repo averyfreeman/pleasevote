@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"math"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -40,15 +41,16 @@ type Administration = civic.StateInformation
 // It retains provider hours and provenance while making category, identity,
 // and coordinates explicit.
 type PublicLocation struct {
-	ID           string         `json:"id"`
-	Kind         string         `json:"kind"`
-	Address      civic.Address  `json:"address"`
-	Notes        string         `json:"notes,omitempty"`
-	PollingHours string         `json:"pollingHours,omitempty"`
-	StartDate    string         `json:"startDate,omitempty"`
-	EndDate      string         `json:"endDate,omitempty"`
-	Point        *Point         `json:"point,omitempty"`
-	Sources      []civic.Source `json:"sources"`
+	ID            string         `json:"id"`
+	Kind          string         `json:"kind"`
+	Address       civic.Address  `json:"address"`
+	Notes         string         `json:"notes,omitempty"`
+	PollingHours  string         `json:"pollingHours,omitempty"`
+	VoterServices string         `json:"voterServices,omitempty"`
+	StartDate     string         `json:"startDate,omitempty"`
+	EndDate       string         `json:"endDate,omitempty"`
+	Point         *Point         `json:"point,omitempty"`
+	Sources       []civic.Source `json:"sources"`
 }
 
 // PublicContest is the normalized contest shape. It keeps the provider's
@@ -81,27 +83,36 @@ type PublicContest struct {
 // PublicAdministration flattens the nested state/local Civic tree into one
 // card while retaining official links and source labels.
 type PublicAdministration struct {
-	Name                                string         `json:"name,omitempty"`
-	ElectionInfoURL                     string         `json:"electionInfoUrl,omitempty"`
-	ElectionRegistrationURL             string         `json:"electionRegistrationUrl,omitempty"`
-	ElectionRegistrationConfirmationURL string         `json:"electionRegistrationConfirmationUrl,omitempty"`
-	VotingLocationFinderURL             string         `json:"votingLocationFinderUrl,omitempty"`
-	BallotInfoURL                       string         `json:"ballotInfoUrl,omitempty"`
-	ElectionRulesURL                    string         `json:"electionRulesUrl,omitempty"`
-	CorrespondenceAddress               *civic.Address `json:"correspondenceAddress,omitempty"`
-	Jurisdiction                        string         `json:"jurisdiction,omitempty"`
-	Sources                             []civic.Source `json:"sources"`
+	Name                                string                   `json:"name,omitempty"`
+	ElectionInfoURL                     string                   `json:"electionInfoUrl,omitempty"`
+	ElectionRegistrationURL             string                   `json:"electionRegistrationUrl,omitempty"`
+	ElectionRegistrationConfirmationURL string                   `json:"electionRegistrationConfirmationUrl,omitempty"`
+	VotingLocationFinderURL             string                   `json:"votingLocationFinderUrl,omitempty"`
+	BallotInfoURL                       string                   `json:"ballotInfoUrl,omitempty"`
+	ElectionRulesURL                    string                   `json:"electionRulesUrl,omitempty"`
+	ElectionNoticeText                  string                   `json:"electionNoticeText,omitempty"`
+	ElectionNoticeURL                   string                   `json:"electionNoticeUrl,omitempty"`
+	AbsenteeVotingInfoURL               string                   `json:"absenteeVotingInfoUrl,omitempty"`
+	VoterServices                       []string                 `json:"voterServices"`
+	HoursOfOperation                    string                   `json:"hoursOfOperation,omitempty"`
+	CorrespondenceAddress               *civic.Address           `json:"correspondenceAddress,omitempty"`
+	PhysicalAddress                     *civic.Address           `json:"physicalAddress,omitempty"`
+	ElectionOfficials                   []civic.ElectionOfficial `json:"electionOfficials"`
+	Jurisdiction                        string                   `json:"jurisdiction,omitempty"`
+	Sources                             []civic.Source           `json:"sources"`
 }
 
 // Retrieval records safe provenance and correlation metadata for a response.
 type Retrieval struct {
-	APIVersion    string `json:"apiVersion"`
-	RequestID     string `json:"requestId"`
-	RetrievedAt   string `json:"retrievedAt"`
-	Provider      string `json:"provider"`
-	ElectionID    string `json:"electionId,omitempty"`
-	CivicEndpoint string `json:"civicEndpoint"`
-	FallbackUsed  bool   `json:"fallbackUsed"`
+	APIVersion     string `json:"apiVersion"`
+	RequestID      string `json:"requestId"`
+	RetrievedAt    string `json:"retrievedAt"`
+	Provider       string `json:"provider"`
+	ElectionID     string `json:"electionId,omitempty"`
+	CivicEndpoint  string `json:"civicEndpoint"`
+	FallbackUsed   bool   `json:"fallbackUsed"`
+	DataSource     string `json:"dataSource,omitempty"`
+	ProviderStatus string `json:"providerStatus,omitempty"`
 }
 
 // LookupResponse is the direct frontend-facing v1 lookup shape. It intentionally
@@ -137,6 +148,22 @@ type ElectionsResponse struct {
 	Retrieval Retrieval        `json:"retrieval"`
 }
 
+// DivisionsResponse is the normalized wrapper around Civic's official search
+// response, with safe retrieval metadata for browser diagnostics.
+type DivisionsResponse struct {
+	Results   []civic.Division `json:"results"`
+	Kind      string           `json:"kind,omitempty"`
+	Retrieval Retrieval        `json:"retrieval"`
+}
+
+// DivisionsByAddressResponse preserves Civic's map-shaped address response.
+type DivisionsByAddressResponse struct {
+	Divisions       map[string]civic.Division `json:"divisions"`
+	NormalizedInput civic.Address             `json:"normalizedInput"`
+	Kind            string                    `json:"kind,omitempty"`
+	Retrieval       Retrieval                 `json:"retrieval"`
+}
+
 // PublicError is the redacted error object returned to the frontend.
 type PublicError struct {
 	Code      string `json:"code"`
@@ -145,6 +172,7 @@ type PublicError struct {
 }
 
 type errorResponse struct {
+	OK        bool        `json:"ok"`
 	Error     PublicError `json:"error"`
 	Retrieval Retrieval   `json:"retrieval"`
 }
@@ -200,6 +228,18 @@ func (h *handler) ServeHTTP(responseWriter http.ResponseWriter, request *http.Re
 			return
 		}
 		h.handleElections(responseWriter, requestID, request)
+	case "/api/v1/divisions":
+		if request.Method != http.MethodGet {
+			h.writeError(responseWriter, requestID, http.StatusMethodNotAllowed, "method_not_allowed", "only GET is supported", false, "divisions")
+			return
+		}
+		h.handleDivisions(responseWriter, requestID, request)
+	case "/api/v1/divisionsByAddress":
+		if request.Method != http.MethodGet {
+			h.writeError(responseWriter, requestID, http.StatusMethodNotAllowed, "method_not_allowed", "only GET is supported", false, "divisionsByAddress")
+			return
+		}
+		h.handleDivisionsByAddress(responseWriter, requestID, request)
 	case "/api/v1/lookup":
 		if request.Method != http.MethodGet {
 			h.writeError(responseWriter, requestID, http.StatusMethodNotAllowed, "method_not_allowed", "only GET is supported", false, "lookup")
@@ -232,17 +272,62 @@ func (h *handler) handleElections(responseWriter http.ResponseWriter, requestID 
 		h.writeError(responseWriter, requestID, http.StatusInternalServerError, "server_configuration", "the voter-information service is not configured", false, "elections")
 		return
 	}
-	elections, err := h.service.Elections(request.Context())
+	elections, mode, err := h.service.ElectionsWithSource(request.Context())
 	if err != nil {
 		h.writeProviderError(responseWriter, requestID, err, "elections")
 		return
 	}
 	retrieval := h.retrieval(requestID, "")
 	retrieval.CivicEndpoint = "elections"
+	retrieval.DataSource = dataSource(mode)
 	h.writeJSON(responseWriter, http.StatusOK, ElectionsResponse{
 		Elections: nonNilElections(elections.Elections),
 		Retrieval: retrieval,
 	})
+}
+
+func (h *handler) handleDivisions(responseWriter http.ResponseWriter, requestID string, request *http.Request) {
+	query := strings.TrimSpace(request.URL.Query().Get("query"))
+	if len(query) > maxAddressLength {
+		h.writeError(responseWriter, requestID, http.StatusBadRequest, "invalid_request", "query is too long", false, "divisions")
+		return
+	}
+	if h.service == nil {
+		h.writeError(responseWriter, requestID, http.StatusInternalServerError, "server_configuration", "the voter-information service is not configured", false, "divisions")
+		return
+	}
+	divisions, err := h.service.Divisions(request.Context(), query)
+	if err != nil {
+		h.writeProviderError(responseWriter, requestID, err, "divisions")
+		return
+	}
+	retrieval := h.retrieval(requestID, "")
+	retrieval.CivicEndpoint = "divisions"
+	h.writeJSON(responseWriter, http.StatusOK, DivisionsResponse{Results: nonNilDivisions(divisions.Results), Kind: divisions.Kind, Retrieval: retrieval})
+}
+
+func (h *handler) handleDivisionsByAddress(responseWriter http.ResponseWriter, requestID string, request *http.Request) {
+	address := strings.TrimSpace(request.URL.Query().Get("address"))
+	if address == "" {
+		h.writeError(responseWriter, requestID, http.StatusBadRequest, "invalid_request", "address is required", false, "divisionsByAddress")
+		return
+	}
+	if len(address) > maxAddressLength {
+		h.writeError(responseWriter, requestID, http.StatusBadRequest, "invalid_request", "address is too long", false, "divisionsByAddress")
+		return
+	}
+	if h.service == nil {
+		h.writeError(responseWriter, requestID, http.StatusInternalServerError, "server_configuration", "the voter-information service is not configured", false, "divisionsByAddress")
+		return
+	}
+	divisions, err := h.service.DivisionsByAddress(request.Context(), address)
+	if err != nil {
+		h.writeProviderError(responseWriter, requestID, err, "divisionsByAddress")
+		return
+	}
+	retrieval := h.retrieval(requestID, "")
+	retrieval.CivicEndpoint = "divisionsByAddress"
+	h.writeJSON(responseWriter, http.StatusOK, DivisionsByAddressResponse{Divisions: nonNilDivisionMap(divisions.Divisions), NormalizedInput: divisions.NormalizedInput, Kind: divisions.Kind, Retrieval: retrieval})
 }
 
 func nonNilElections(values []civic.Election) []civic.Election {
@@ -312,7 +397,9 @@ func (h *handler) handleDiscovery(responseWriter http.ResponseWriter, requestID 
 
 func (h *handler) lookupResponse(lookup voterinfo.LookupResult, requestID string) LookupResponse {
 	retrieval := h.retrieval(requestID, lookup.Election.ID)
-	retrieval.FallbackUsed = lookup.Mode == voterinfo.ModeTestFallback
+	retrieval.FallbackUsed = lookup.Mode == voterinfo.ModeTestFixture
+	retrieval.DataSource = lookup.DataSource
+	retrieval.ProviderStatus = lookup.ProviderStatus
 	return LookupResponse{
 		Address:           lookup.Address,
 		NormalizedAddress: lookup.NormalizedAddress,
@@ -339,23 +426,35 @@ func publicLocations(values []civic.PollingLocation, kind string) []PublicLocati
 		if address.LocationName == "" && value.Name != "" {
 			address.LocationName = value.Name
 		}
-		var point *Point
-		if value.Latitude != nil && value.Longitude != nil {
-			point = &Point{Latitude: float64(*value.Latitude), Longitude: float64(*value.Longitude)}
-		}
+		point := publicPoint(value.Latitude, value.Longitude)
 		locations = append(locations, PublicLocation{
-			ID:           fmt.Sprintf("%s-%d", kind, index),
-			Kind:         kind,
-			Address:      address,
-			Notes:        value.Notes,
-			PollingHours: value.PollingHours,
-			StartDate:    value.StartDate,
-			EndDate:      value.EndDate,
-			Point:        point,
-			Sources:      nonNilSources(value.Sources),
+			ID:            fmt.Sprintf("%s-%d", kind, index),
+			Kind:          kind,
+			Address:       address,
+			Notes:         value.Notes,
+			PollingHours:  value.PollingHours,
+			VoterServices: value.VoterServices,
+			StartDate:     value.StartDate,
+			EndDate:       value.EndDate,
+			Point:         point,
+			Sources:       nonNilSources(value.Sources),
 		})
 	}
 	return locations
+}
+
+func publicPoint(latitude *civic.Coordinate, longitude *civic.Coordinate) *Point {
+	if latitude == nil || longitude == nil {
+		return nil
+	}
+	point := &Point{Latitude: float64(*latitude), Longitude: float64(*longitude)}
+	if math.IsNaN(point.Latitude) || math.IsInf(point.Latitude, 0) ||
+		math.IsNaN(point.Longitude) || math.IsInf(point.Longitude, 0) ||
+		point.Latitude < -90 || point.Latitude > 90 ||
+		point.Longitude < -180 || point.Longitude > 180 {
+		return nil
+	}
+	return point
 }
 
 func publicContests(values []civic.Contest) []PublicContest {
@@ -413,7 +512,20 @@ func publicAdministration(values []civic.StateInformation) []PublicAdministratio
 			record.VotingLocationFinderURL = body.VotingLocationFinderURL
 			record.BallotInfoURL = body.BallotInfoURL
 			record.ElectionRulesURL = body.ElectionRulesURL
+			record.ElectionNoticeText = body.ElectionNoticeText
+			record.ElectionNoticeURL = body.ElectionNoticeURL
+			record.AbsenteeVotingInfoURL = body.AbsenteeVotingInfoURL
+			record.VoterServices = nonNilStrings(body.VoterServices)
+			record.HoursOfOperation = body.HoursOfOperation
 			record.CorrespondenceAddress = body.CorrespondenceAddress
+			record.PhysicalAddress = body.PhysicalAddress
+			record.ElectionOfficials = nonNilElectionOfficials(body.ElectionOfficials)
+		}
+		if record.VoterServices == nil {
+			record.VoterServices = []string{}
+		}
+		if record.ElectionOfficials == nil {
+			record.ElectionOfficials = []civic.ElectionOfficial{}
 		}
 		record.Sources = nonNilSources(record.Sources)
 		records = append(records, record)
@@ -442,6 +554,41 @@ func nonNilCandidates(values []civic.Candidate) []civic.Candidate {
 		return []civic.Candidate{}
 	}
 	return values
+}
+
+func nonNilStrings(values []string) []string {
+	if values == nil {
+		return []string{}
+	}
+	return values
+}
+
+func nonNilElectionOfficials(values []civic.ElectionOfficial) []civic.ElectionOfficial {
+	if values == nil {
+		return []civic.ElectionOfficial{}
+	}
+	return values
+}
+
+func nonNilDivisions(values []civic.Division) []civic.Division {
+	if values == nil {
+		return []civic.Division{}
+	}
+	return values
+}
+
+func nonNilDivisionMap(values map[string]civic.Division) map[string]civic.Division {
+	if values == nil {
+		return map[string]civic.Division{}
+	}
+	return values
+}
+
+func dataSource(mode voterinfo.Mode) string {
+	if mode == voterinfo.ModeTestFixture {
+		return "test-fixture"
+	}
+	return "live"
 }
 
 func (h *handler) writeDocs(responseWriter http.ResponseWriter) {
@@ -537,6 +684,7 @@ func (h *handler) writeError(responseWriter http.ResponseWriter, requestID strin
 		slog.Int("status", status),
 	)
 	h.writeJSON(responseWriter, status, errorResponse{
+		OK:        false,
 		Error:     PublicError{Code: code, Message: message, Retryable: retryable},
 		Retrieval: h.retrieval(requestID, ""),
 	})

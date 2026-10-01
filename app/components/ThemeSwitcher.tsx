@@ -4,9 +4,7 @@ import { Moon, Sun, Monitor } from "lucide-react";
 /** Supported visitor color-mode preferences. */
 export type ThemePreference = "system" | "light" | "dark";
 
-const STORAGE_KEY = "pleasevote.theme";
-
-/** Apply a theme preference without changing the visitor's stored address. */
+/** Apply a theme preference without persisting lookup-related browser data. */
 function applyTheme(preference: ThemePreference): void {
   const root = document.documentElement;
   if (preference === "system") {
@@ -23,15 +21,11 @@ export default function ThemeSwitcher() {
   const [preference, setPreference] = useState<ThemePreference>("system");
 
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    const next: ThemePreference = stored === "light" || stored === "dark" ? stored : "system";
-    setPreference(next);
-    applyTheme(next);
+    applyTheme("system");
   }, []);
 
   function handleChange(next: ThemePreference): void {
     setPreference(next);
-    localStorage.setItem(STORAGE_KEY, next);
     applyTheme(next);
   }
 

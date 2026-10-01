@@ -21,9 +21,9 @@ export interface LocationResults {
 
 /** The composed, user-oriented view model for a voter-information response. */
 export interface VotingPlan {
-  /** Election and fallback status. */
+  /** Election and fixture status. */
   readonly election: LookupResponse["election"];
-  /** Visitor-facing fallback warning, if any. */
+  /** Visitor-facing fixture or partial-data warning, if any. */
   readonly warning?: string;
   /** Selected radius in miles. */
   readonly radiusMiles: number;
@@ -61,15 +61,18 @@ export function calculateDistance(origin: GeoPoint, destination: GeoPoint): numb
   const longitudeDelta = ((destination.longitude - origin.longitude) * Math.PI) / 180;
   const originLatitude = (origin.latitude * Math.PI) / 180;
   const destinationLatitude = (destination.latitude * Math.PI) / 180;
-  const haversine = Math.sin(latitudeDelta / 2) ** 2 +
+  const haversine = Math.min(1, Math.max(0, Math.sin(latitudeDelta / 2) ** 2 +
     Math.cos(originLatitude) * Math.cos(destinationLatitude) *
-      Math.sin(longitudeDelta / 2) ** 2;
+      Math.sin(longitudeDelta / 2) ** 2));
   const arc = 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
   return earthRadiusMiles * arc;
 }
 
 /** Clamp an arbitrary radius to the documented visitor range. */
 export function normalizeRadius(radius: number | string | null | undefined): number {
+  if (radius === null || radius === undefined || (typeof radius === "string" && radius.trim() === "")) {
+    return DEFAULT_RADIUS_MILES;
+  }
   const numericRadius = typeof radius === "number" ? radius : Number(radius);
   if (!Number.isFinite(numericRadius)) return DEFAULT_RADIUS_MILES;
   return Math.min(MAX_RADIUS_MILES, Math.max(MIN_RADIUS_MILES, Math.round(numericRadius)));
@@ -101,9 +104,11 @@ export function classifyLocations(
     }
   }
 
-  const byDistance = (left: VotingLocation, right: VotingLocation): number =>
-    (left.distanceMiles ?? Number.POSITIVE_INFINITY) -
-    (right.distanceMiles ?? Number.POSITIVE_INFINITY);
+  const byDistance = (left: VotingLocation, right: VotingLocation): number => {
+    const distanceDifference = (left.distanceMiles ?? Number.POSITIVE_INFINITY) -
+      (right.distanceMiles ?? Number.POSITIVE_INFINITY);
+    return distanceDifference || left.id.localeCompare(right.id);
+  };
   inRadius.sort(byDistance);
   outsideRadius.sort(byDistance);
 
