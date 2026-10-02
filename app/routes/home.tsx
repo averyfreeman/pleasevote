@@ -52,7 +52,22 @@ export default function Home() {
               Find the details before you go.
             </h1>
             <p className="mt-5 max-w-2xl text-lg leading-8 text-base-content/75">
-              Find local election dates, places to vote, early voting, ballot drop-off, contests, candidates, and official election-office links.
+              <strong>
+                Gather all the information you need in one place: 
+              </strong>
+            </p>
+            <ul className="mt-4 mb-4 list-disc list-inside text-lg text-base-content/75 space-y-1">
+              <li>election dates</li>
+              <li>contests and candidates</li>
+              <li>polling locations</li>
+              <li>early voting</li>
+              <li>ballot drop-off locations</li>
+              <li>links to your local election office</li>
+            </ul>
+            <p className="mt-5 max-w-2xl text-lg leading-8 text-base-content/75">
+              <strong>
+                 We'll help you print them all out with directions so you can have a concrete plan for when and where to vote!
+              </strong>
             </p>
             <div className="mt-8 rounded-2xl border border-base-300 bg-base-100 p-5 shadow-lg">
               <h2 className="text-xl font-extrabold">Enter your address</h2>
