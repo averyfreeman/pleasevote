@@ -75,6 +75,7 @@ export default function Home() {
               <div className="mt-5">
                 <AddressInput elections={elections} />
               </div>
+              <p className="mt-4 rounded-xl border border-info/25 bg-info/10 p-3 text-sm leading-6 text-base-content/75">Election information may not be available yet. Historically, details have often become available 2–4 weeks before Election Day—usually in early to mid-October. Check back closer to Election Day and confirm details with your local election office.</p>
             </div>
           </div>
           <div className="space-y-5">

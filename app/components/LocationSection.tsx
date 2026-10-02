@@ -88,7 +88,7 @@ export default function LocationSection({ title, description, results, emptyMess
         <div className="mt-4 grid gap-4 lg:grid-cols-2">
           {visible.map((location) => <LocationCard key={location.id} location={location} />)}
         </div>
-      ) : <div className="mt-4 rounded-2xl border border-dashed border-base-300 bg-base-100 p-6 text-sm text-base-content/70"><p>{emptyMessage}</p><p className="mt-3">Not finding what you need? <a className="link link-primary font-bold" href="https://vote.gov" target="_blank" rel="noreferrer">Check vote.gov<span className="sr-only"> (opens in a new tab)</span></a>.</p></div>}
+      ) : <div className="mt-4 rounded-2xl border border-dashed border-base-300 bg-base-100 p-6 text-sm text-base-content/70"><p>{emptyMessage}</p></div>}
       {results.inRadius.length > 10 ? (
         <button className="btn btn-outline btn-sm mt-4" type="button" onClick={() => setShowAll((current) => !current)}>
           {showAll ? "Show nearest 10" : `Show all ${results.inRadius.length} locations`}

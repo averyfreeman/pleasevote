@@ -36,6 +36,7 @@ test.describe("PleaseVote scenario tests", () => {
 
     await expect(page.locator("h1")).toContainText("Find the details");
     await expect(page.getByText(/countdown/i)).toBeVisible();
+    await expect(page.getByText(/Election information may not be available yet/)).toBeVisible();
     const input = page.getByLabel("Your address");
     await expect(input).toBeVisible();
     await expect(input).toBeEditable();
@@ -60,6 +61,17 @@ test.describe("PleaseVote scenario tests", () => {
     await expect(page.getByText("Civic marks this election as mail-only.")).toBeVisible();
     await expect(page.getByText("Accessible voting and same-day registration")).toBeVisible();
     expect(lookupRequested).toBe(true);
+  });
+
+  test("No-data locations keep the persistent official link without repeating it", async ({ page }) => {
+    await page.route("**/api/v1/elections", (route) => route.fulfill({ json: fixture }));
+    await page.route("**/api/v1/lookup**", (route) => route.fulfill({ json: { ...lookup, pollingLocations: [], earlyVoteSites: [], dropOffLocations: [] } }));
+
+    await page.goto("/voterinfo?address=211%20Garrett%20Place%2C%20Columbus%2C%20OH%2043214");
+
+    await expect(page.getByText("No election-day locations are within this distance.")).toBeVisible();
+    await expect(page.getByText("Not finding what you need?")).toHaveCount(0);
+    await expect(page.locator('a[href="https://vote.gov"]')).toHaveCount(1);
   });
 
   test("Contest navigation: candidate details are disaggregated from the list", async ({ page }) => {

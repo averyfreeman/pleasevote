@@ -57,8 +57,6 @@ export default function VoterInfo() {
     return (
       <main id="main-content" className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
         <div className="alert alert-error items-start"><AlertTriangle aria-hidden="true" className="mt-0.5" /><div><h1 className="font-black">We could not load voter information</h1><p className="mt-1">{loaderData.error}</p></div></div>
-        <p className="mt-6 text-sm leading-6 text-base-content/70">You can also start with the official voter-information hub:</p>
-        <a className="link link-primary mt-1 inline-block font-bold" href="https://vote.gov" target="_blank" rel="noreferrer">Visit vote.gov<span className="sr-only"> (opens in a new tab)</span></a>
         <Link to="/" className="btn btn-primary mt-6"><ArrowLeft aria-hidden="true" size={18} />Try another address</Link>
       </main>
     );
@@ -67,7 +65,6 @@ export default function VoterInfo() {
   const plan = buildVotingPlan(data, radius);
   const fixture = data.mode === "test-fixture";
   const normalized = fixture ? data.address : displayAddress(data.normalizedAddress) || address || data.address;
-  const hasLocations = data.pollingLocations.length > 0 || data.earlyVoteSites.length > 0 || data.dropOffLocations.length > 0;
 
   function applyRadius(event: React.FormEvent<HTMLFormElement>): void {
     event.preventDefault();
@@ -131,7 +128,6 @@ export default function VoterInfo() {
             <LocationSection title="Early-vote sites" description="Hours come from the source. Rules may vary by jurisdiction." results={plan.earlyVoteSites} emptyMessage="No early-vote sites were found within this distance." />
             <LocationSection title="Ballot drop-off locations" description="Check that your ballot and jurisdiction allow drop-off here." results={plan.dropOffLocations} emptyMessage="No ballot drop-off locations were found within this distance." />
           </div>
-          {!hasLocations ? <div className="rounded-2xl border border-secondary/30 bg-secondary/10 p-5 text-sm leading-6"><p className="font-bold">Not finding what you need here?</p><p className="mt-1">Use the official voter-information hub at <a className="link link-primary font-bold" href="https://vote.gov" target="_blank" rel="noreferrer">vote.gov<span className="sr-only"> (opens in a new tab)</span></a>, then confirm details with your election office.</p></div> : null}
 
           <ContestSection contests={plan.contests} />
           <AdministrationSection records={plan.administration} />
